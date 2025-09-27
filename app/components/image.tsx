@@ -3,7 +3,12 @@
 import { useRef, useMemo, useState, useEffect } from "react";
 import { Mesh, TextureLoader, Texture } from "three";
 import { geometry } from "maath";
-import { useMotionValue, useSpring } from "motion/react";
+import {
+  SpringOptions,
+  useMotionValue,
+  useSpring,
+  animate,
+} from "motion/react";
 import { useFrame } from "@react-three/fiber";
 import data from "../assets/data.json";
 import { IMAGE_SIZE } from "./flat";
@@ -11,14 +16,16 @@ import { IMAGE_SIZE } from "./flat";
 // Global texture cache to avoid reloading the same images
 const textureCache = new Map<string, Texture>();
 const textureLoader = new TextureLoader();
+const HOVER_OFFSET = 0;
+const POSITION_ANIMATION_DURATION = 0.3;
 
-const HOVER_OFFSET = 50;
-
-interface ImageProps {
+export function Image({
+  position,
+  doTransition,
+}: {
   position: [number, number, number];
-}
-
-export function Image({ position }: ImageProps) {
+  doTransition: boolean;
+}) {
   const meshRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -38,16 +45,64 @@ export function Image({ position }: ImageProps) {
     mass: 0.8,
   });
 
+  // Motion values for smooth position animation with bezier easing
+  const xPositionMotionValue = useMotionValue(position[0]);
+  const yPositionMotionValue = useMotionValue(position[1]);
+  const zPositionMotionValue = useMotionValue(position[2]);
+
   // Update motion values when hover state changes
   useEffect(() => {
     zOffsetMotionValue.set(isHovered ? HOVER_OFFSET : 0);
     scaleMotionValue.set(isHovered ? 1.1 : 1);
   }, [isHovered, zOffsetMotionValue, scaleMotionValue]);
 
-  // Update mesh position and scale based on spring values
+  // Handle doTransition animation to (0, 0, 0)
+  useEffect(() => {
+    if (doTransition) {
+      animate(xPositionMotionValue, 0, {
+        duration: POSITION_ANIMATION_DURATION,
+        ease: [0.25, 0.1, 0.25, 1],
+      });
+      animate(yPositionMotionValue, 0, {
+        duration: POSITION_ANIMATION_DURATION,
+        ease: [0.25, 0.1, 0.25, 1],
+      });
+      animate(zPositionMotionValue, 0, {
+        duration: POSITION_ANIMATION_DURATION,
+        ease: [0.25, 0.1, 0.25, 1],
+      });
+      // scale to 0.1
+      scaleMotionValue.set(0.1);
+    } else {
+      animate(xPositionMotionValue, position[0], {
+        duration: POSITION_ANIMATION_DURATION,
+        ease: [0.25, 0.1, 0.25, 1],
+      });
+      animate(yPositionMotionValue, position[1], {
+        duration: POSITION_ANIMATION_DURATION,
+        ease: [0.25, 0.1, 0.25, 1],
+      });
+      animate(zPositionMotionValue, position[2], {
+        duration: POSITION_ANIMATION_DURATION,
+        ease: [0.25, 0.1, 0.25, 1],
+      });
+      scaleMotionValue.set(1);
+    }
+  }, [
+    doTransition,
+    position,
+    xPositionMotionValue,
+    yPositionMotionValue,
+    zPositionMotionValue,
+  ]);
+
+  // Update mesh position and scale based on motion values
   useFrame(() => {
     if (meshRef.current) {
-      meshRef.current.position.z = position[2] + zOffsetSpring.get();
+      meshRef.current.position.x = xPositionMotionValue.get();
+      meshRef.current.position.y = yPositionMotionValue.get();
+      meshRef.current.position.z =
+        zPositionMotionValue.get() + zOffsetSpring.get();
       const scale = scaleSpring.get();
       meshRef.current.scale.setScalar(scale);
     }
@@ -90,8 +145,9 @@ export function Image({ position }: ImageProps) {
 
   // Create rounded plane geometry
   const roundedGeometry = useMemo(() => {
-    return new geometry.RoundedPlaneGeometry(IMAGE_SIZE, IMAGE_SIZE, 10, 10);
-  }, []);
+    const radius = doTransition ? IMAGE_SIZE / 2 : 10;
+    return new geometry.RoundedPlaneGeometry(IMAGE_SIZE, IMAGE_SIZE, radius, 5);
+  }, [doTransition]);
 
   return (
     <mesh

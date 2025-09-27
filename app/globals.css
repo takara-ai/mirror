@@ -120,3 +120,7 @@
     @apply bg-background text-foreground p-0;
   }
 }
+@utility vignette {
+  @apply fixed top-0 left-0 w-full h-full pointer-events-none z-10;
+  box-shadow: 0 0 300px rgba(0, 0, 0, 1) inset;
+}
