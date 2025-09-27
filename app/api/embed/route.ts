@@ -5,6 +5,11 @@ export const dynamic = 'force-dynamic';   // ensure server execution
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
 
+// Set ONNX runtime environment for Vercel
+if (process.env.VERCEL) {
+  process.env.ORT_DYLIB_PATH = process.env.ORT_DYLIB_PATH || '/var/task/node_modules/onnxruntime-node/bin';
+}
+
 // Singleton pattern for model caching as recommended by Hugging Face
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let cachedProcessor: any = null;
