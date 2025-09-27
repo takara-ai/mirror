@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
-import { useMotionValue, useSpring } from "motion/react";
+import { useMotionValue, useSpring, MotionValue } from "motion/react";
 import { usePositionCache } from "@/lib/store";
 import { worldPositionToGridPosition } from "@/lib/position";
 
@@ -14,9 +14,15 @@ const Z_DISTANCE_DRAGGING = 1000;
 const Z_DISTANCE_IDLE = 800;
 
 export function FlatCameraControls({
-  isTransitioning,
+  xMotionValue,
+  yMotionValue,
+  xSpring,
+  ySpring,
 }: {
-  isTransitioning: boolean;
+  xMotionValue: MotionValue<number>;
+  yMotionValue: MotionValue<number>;
+  xSpring: MotionValue<number>;
+  ySpring: MotionValue<number>;
 }) {
   const setGridCameraPosition = usePositionCache(
     (state) => state.setCameraPosition
@@ -24,7 +30,6 @@ export function FlatCameraControls({
   const { camera, gl } = useThree();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
-  const [_, setCameraPosition] = useState({ x: 0, y: 0 });
 
   // Motion values for smooth transitions
   const zMotionValue = useMotionValue(Z_DISTANCE_IDLE);
@@ -34,21 +39,7 @@ export function FlatCameraControls({
     mass: 0.8,
   });
 
-  // Motion values for smooth camera position
-  const xMotionValue = useMotionValue(0);
-  const yMotionValue = useMotionValue(0);
-
-  const xSpring = useSpring(xMotionValue, {
-    stiffness: 400,
-    damping: 25,
-    mass: 0.5,
-  });
-
-  const ySpring = useSpring(yMotionValue, {
-    stiffness: 400,
-    damping: 25,
-    mass: 0.5,
-  });
+  // Motion values are now passed as props from parent component
 
   // Update motion value when dragging state changes
   useEffect(() => {
@@ -67,15 +58,18 @@ export function FlatCameraControls({
       const deltaX = event.clientX - lastMouse.x;
       const deltaY = event.clientY - lastMouse.y;
 
-      setCameraPosition((prev) => {
-        const newX = prev.x - deltaX * MOUSE_PAN_SENSITIVITY;
-        const newY = prev.y + deltaY * MOUSE_PAN_SENSITIVITY;
-        xMotionValue.set(newX);
-        yMotionValue.set(newY);
-        const newGridPos = worldPositionToGridPosition(newX, newY);
-        setGridCameraPosition(newGridPos);
-        return { x: newX, y: newY };
-      });
+      // Get current position from motion values
+      const currentX = xMotionValue.get();
+      const currentY = yMotionValue.get();
+
+      const newX = currentX - deltaX * MOUSE_PAN_SENSITIVITY;
+      const newY = currentY + deltaY * MOUSE_PAN_SENSITIVITY;
+
+      xMotionValue.set(newX);
+      yMotionValue.set(newY);
+
+      const newGridPos = worldPositionToGridPosition(newX, newY);
+      setGridCameraPosition(newGridPos);
 
       setLastMouse({ x: event.clientX, y: event.clientY });
     };
@@ -92,13 +86,18 @@ export function FlatCameraControls({
       const deltaX = event.deltaX * TOUCHPAD_PAN_SENSITIVITY;
       const deltaY = event.deltaY * TOUCHPAD_PAN_SENSITIVITY;
 
-      setCameraPosition((prev) => {
-        const newX = prev.x + deltaX;
-        const newY = prev.y - deltaY;
-        xMotionValue.set(newX);
-        yMotionValue.set(newY);
-        return { x: newX, y: newY };
-      });
+      // Get current position from motion values
+      const currentX = xMotionValue.get();
+      const currentY = yMotionValue.get();
+
+      const newX = currentX + deltaX;
+      const newY = currentY - deltaY;
+
+      xMotionValue.set(newX);
+      yMotionValue.set(newY);
+
+      const newGridPos = worldPositionToGridPosition(newX, newY);
+      setGridCameraPosition(newGridPos);
     };
 
     const canvas = gl.domElement;

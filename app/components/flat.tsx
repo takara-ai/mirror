@@ -1,24 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { usePositionCache } from "@/lib/store";
 import { useFrame, useThree } from "@react-three/fiber";
+import { useEffect, useRef, useState } from "react";
 import { Group } from "three";
 import { Image } from "./image";
-import { SearchResult } from "../page";
-import { useMutation } from "@tanstack/react-query";
-import { usePositionCache } from "@/lib/store";
 
 // Grid configuration
-export const IMAGE_SIZE = 200; // Size of each square image
-const GAP = 15; // Gap between images
+export const IMAGE_SIZE = 100; // Size of each square image
+const GAP = 5; // Gap between images
 export const CELL_SIZE = IMAGE_SIZE + GAP; // Total space per cell (image + gap)
 const VIEWPORT_MARGIN = 1000; // Extra margin around viewport
-const BORDER_PADDING = 2; // Extra images beyond viewport to prevent edge transitions
+const BORDER_PADDING = 0; // Extra images beyond viewport to prevent edge transitions
 const VERTICAL_OFFSET = 0; // Vertical offset between columns
 
 export function Flat({ doTransition }: { doTransition: boolean }) {
   const groupRef = useRef<Group>(null);
   const { camera } = useThree();
+  const [initialized, setInitialized] = useState(false);
   const [gridPositions, setGridPositions] = useState<
     Array<{
       position: [number, number, number];
@@ -87,7 +86,11 @@ export function Flat({ doTransition }: { doTransition: boolean }) {
   });
 
   useEffect(() => {
-    usePositionCache.getState().getResultForPosition({ x: 0, y: 0 });
+    if (initialized) return;
+    usePositionCache
+      .getState()
+      .getResultForPosition({ position: { x: 0, y: 0 } });
+    setInitialized(true);
   }, []);
 
   return (

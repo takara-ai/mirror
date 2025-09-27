@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { gridPositionToWorldPosition } from "./position";
 
 export type SearchResult = {
   id: string;
@@ -30,9 +31,13 @@ type PositionCacheState = {
   getNearestAvailablePosition: (
     position: Position2D
   ) => SearchResult | undefined;
-  getResultForPosition: (
-    position: Position2D
-  ) => Promise<SearchResult | undefined>;
+  getResultForPosition: ({
+    position,
+    text,
+  }: {
+    position?: Position2D;
+    text?: string;
+  }) => Promise<Position2D | undefined>;
 };
 
 const positionToKey = (position: Position2D): string => {
@@ -94,7 +99,10 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
         for (let dy = -radius; dy <= radius; dy++) {
           // Only check positions on the edge of the current radius
           if (Math.abs(dx) === radius || Math.abs(dy) === radius) {
-            const checkPosition = { x: position.x + dx, y: position.y + dy };
+            const checkPosition = roundPosition({
+              x: position.x + dx,
+              y: position.y + dy,
+            });
             const key = positionToKey(checkPosition);
 
             if (!cache.has(key)) {
@@ -127,7 +135,10 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
             Math.abs(dx) === radius ||
             Math.abs(dy) === radius
           ) {
-            const checkPosition = { x: position.x + dx, y: position.y + dy };
+            const checkPosition = roundPosition({
+              x: position.x + dx,
+              y: position.y + dy,
+            });
             const key = positionToKey(checkPosition);
 
             if (cache.has(key)) {
@@ -142,29 +153,87 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
     // If no available position found within the search radius, return the original position
     return undefined;
   },
-  getResultForPosition: async (position: Position2D) => {
+  getResultForPosition: async ({
+    position,
+    text,
+  }: {
+    position?: Position2D;
+    text?: string;
+  }) => {
     const state = get();
+    if (!position) {
+      position = { ...state.cameraPosition };
+      // Generate random direction in one of 8 directions (N, NE, E, SE, S, SW, W, NW)
+      const directions = [
+        [0, 1], // N
+        [1, 1], // NE
+        [1, 0], // E
+        [1, -1], // SE
+        [0, -1], // S
+        [-1, -1], // SW
+        [-1, 0], // W
+        [-1, 1], // NW
+      ];
+      const direction = directions[Math.floor(Math.random() * 8)];
+      const distance = Math.random() * 10 + 10; // Random distance between 10 and 20
+      position = roundPosition({
+        x: position.x + direction[0] * distance,
+        y: position.y + direction[1] * distance,
+      });
+    }
     const existingData = state.getPositionData(position);
     const nearestData = state.getNearestAvailablePosition(position);
-
-    if (nearestData) {
-      return nearestData;
-    }
 
     // If no data found, fetch from API
     try {
       // Use existing image URL if position has data, otherwise use random string
-      const response = await fetch("/api/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          existingData
-            ? { image_url: existingData.image_url }
-            : { text: Math.random().toString(36).substring(2, 15) }
-        ),
-      });
+      let response;
+      if (existingData) {
+        response = await fetch("/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image_url: existingData.image_url,
+            top_k: 300,
+          }),
+        });
+      } else if (text) {
+        response = await fetch("/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: text, top_k: 300 }),
+        });
+      } else if (nearestData) {
+        response = await fetch("/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            image_url: nearestData.image_url,
+            top_k: 300,
+          }),
+        });
+      } else {
+        response = await fetch("/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: Math.random().toString(36).substring(2, 15),
+            top_k: 300,
+          }),
+        });
+      }
+      if (!response) {
+        alert("No response from API");
+        return undefined;
+      }
 
       const data = (await response.json()) as {
         results: {
@@ -186,6 +255,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
         position,
         data.results.length
       );
+      console.log("emptyPositions", emptyPositions);
 
       for (let i = 0; i < emptyPositions.length; i++) {
         const emptyPosition = emptyPositions[i];
@@ -193,10 +263,17 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
       }
 
       // Return the data for the requested position if available
-      return state.getPositionData(position);
+      return gridPositionToWorldPosition(position.x, position.y);
     } catch (error) {
       console.error("Failed to fetch search results:", error);
       return undefined;
     }
   },
 }));
+
+function roundPosition(position: Position2D) {
+  return {
+    x: Math.floor(position.x),
+    y: Math.floor(position.y),
+  };
+}
