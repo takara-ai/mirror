@@ -38,7 +38,9 @@ node_modules/
 # python
 .venv
 
-node_modules
 .next
+
+node_modules
 public/data/**
 .DS_Store
+
