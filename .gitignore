@@ -31,6 +31,10 @@ go.work.sum
 # .idea/
 # .vscode/
 
+
 # Node Stuff
 node_modules/
 .vercel
+# python
+.venv
+
