@@ -1,27 +1,47 @@
 "use client";
 
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { worldPositionToGridPosition } from "@/lib/position";
+import {
+  CameraControls,
+  Environment,
+  Fisheye,
+  PerspectiveCamera,
+} from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { View3D } from "./components/3d";
 import { Flat } from "./components/flat";
 import { FlatCameraControls } from "./components/flat-camera-controls";
-import { Input } from "@/app/components/ui/input";
-import { CameraControls, Environment, Fisheye } from "@react-three/drei";
-import { useEffect, useState } from "react";
-import { Button } from "@/app/components/ui/button";
-import { View3D } from "./components/3d";
+import { usePositionCache } from "@/lib/store";
+
+export type SearchResult = {
+  id: string;
+  image_id: string;
+  image_url: string;
+  width: number;
+  height: number;
+  score: number;
+};
 
 export default function Home() {
   const [mode, setMode] = useState<"flat" | "3d">("flat");
   const [targetMode, setTargetMode] = useState<"flat" | "3d">("flat");
+  const [query, setQuery] = useState<string>("");
 
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setMode(targetMode);
-  //   }, 1000);
-  // }, [targetMode]);
+  useEffect(() => {
+    setMode(targetMode);
+  }, [targetMode]);
+
+  const camPos = usePositionCache((state) => state.cameraPosition);
 
   return (
     <div className="w-full h-screen relative">
-      <Canvas camera={{ position: [0, 0, 800], fov: 80 }}>
+      <Canvas
+        camera={{ position: [0, 0, 800], fov: 80, near: 0.1, far: 100000 }}
+      >
         {mode === "flat" ? (
           <Fisheye zoom={1.4} resolution={2000}>
             <ambientLight intensity={0.8} />
@@ -33,7 +53,7 @@ export default function Home() {
           <>
             <ambientLight intensity={0.8} />
             <View3D />
-            <CameraControls />
+            <CameraControls minDistance={100} maxDistance={6000} />
             <Environment background={true} files={"/space.hdr"} />
           </>
         )}
@@ -43,6 +63,8 @@ export default function Home() {
           <Input
             placeholder="Search"
             className="w-full rounded-xl h-12 text-lg pointer-events-auto bg-background/90"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </div>
@@ -61,6 +83,9 @@ export default function Home() {
           </Button>
           <span className="text-sm font-medium">
             Switch to {targetMode === "flat" ? "3D" : "Flat"}
+          </span>
+          <span className="text-sm font-medium">
+            {camPos.x}, {camPos.y}
           </span>
         </div>
       </div>

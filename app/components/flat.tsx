@@ -1,15 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Group } from "three";
 import { Image } from "./image";
-import data from "../assets/data.json";
+import { SearchResult } from "../page";
+import { useMutation } from "@tanstack/react-query";
+import { usePositionCache } from "@/lib/store";
 
 // Grid configuration
 export const IMAGE_SIZE = 200; // Size of each square image
 const GAP = 15; // Gap between images
-const CELL_SIZE = IMAGE_SIZE + GAP; // Total space per cell (image + gap)
+export const CELL_SIZE = IMAGE_SIZE + GAP; // Total space per cell (image + gap)
 const VIEWPORT_MARGIN = 1000; // Extra margin around viewport
 const BORDER_PADDING = 2; // Extra images beyond viewport to prevent edge transitions
 const VERTICAL_OFFSET = 0; // Vertical offset between columns
@@ -83,6 +85,10 @@ export function Flat({ doTransition }: { doTransition: boolean }) {
 
     setGridPositions(newPositions);
   });
+
+  useEffect(() => {
+    usePositionCache.getState().getResultForPosition({ x: 0, y: 0 });
+  }, []);
 
   return (
     <group ref={groupRef}>

@@ -10,14 +10,18 @@ import {
   animate,
 } from "motion/react";
 import { useFrame } from "@react-three/fiber";
-import data from "../assets/data.json";
-import { IMAGE_SIZE } from "./flat";
+import { CELL_SIZE, IMAGE_SIZE } from "./flat";
+import { SearchResult } from "../page";
+import { TextGeometry } from "three/examples/jsm/Addons";
+import { Text3D } from "@react-three/drei";
+import { worldPositionToGridPosition } from "@/lib/position";
+import { usePositionCache } from "@/lib/store";
+import { useMutation } from "@tanstack/react-query";
 
 // Global texture cache to avoid reloading the same images
 const textureCache = new Map<string, Texture>();
 const textureLoader = new TextureLoader();
-const HOVER_OFFSET = 0;
-const POSITION_ANIMATION_DURATION = 0.3;
+const HOVER_OFFSET = 100;
 
 export function Image({
   position,
@@ -28,6 +32,10 @@ export function Image({
 }) {
   const meshRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  const gridPos = useMemo(() => {
+    return worldPositionToGridPosition(position[0], position[1]);
+  }, [position]);
 
   // Motion values for smooth z-offset animation
   const zOffsetMotionValue = useMotionValue(0);
@@ -45,11 +53,6 @@ export function Image({
     mass: 0.8,
   });
 
-  // Motion values for smooth position animation with bezier easing
-  const xPositionMotionValue = useMotionValue(position[0]);
-  const yPositionMotionValue = useMotionValue(position[1]);
-  const zPositionMotionValue = useMotionValue(position[2]);
-
   // Update motion values when hover state changes
   useEffect(() => {
     zOffsetMotionValue.set(isHovered ? HOVER_OFFSET : 0);
@@ -59,95 +62,64 @@ export function Image({
   // Handle doTransition animation to (0, 0, 0)
   useEffect(() => {
     if (doTransition) {
-      animate(xPositionMotionValue, 0, {
-        duration: POSITION_ANIMATION_DURATION,
-        ease: [0.25, 0.1, 0.25, 1],
-      });
-      animate(yPositionMotionValue, 0, {
-        duration: POSITION_ANIMATION_DURATION,
-        ease: [0.25, 0.1, 0.25, 1],
-      });
-      animate(zPositionMotionValue, 0, {
-        duration: POSITION_ANIMATION_DURATION,
-        ease: [0.25, 0.1, 0.25, 1],
-      });
       // scale to 0.1
-      scaleMotionValue.set(0.1);
+      scaleMotionValue.set(0);
     } else {
-      animate(xPositionMotionValue, position[0], {
-        duration: POSITION_ANIMATION_DURATION,
-        ease: [0.25, 0.1, 0.25, 1],
-      });
-      animate(yPositionMotionValue, position[1], {
-        duration: POSITION_ANIMATION_DURATION,
-        ease: [0.25, 0.1, 0.25, 1],
-      });
-      animate(zPositionMotionValue, position[2], {
-        duration: POSITION_ANIMATION_DURATION,
-        ease: [0.25, 0.1, 0.25, 1],
-      });
       scaleMotionValue.set(1);
     }
-  }, [
-    doTransition,
-    position,
-    xPositionMotionValue,
-    yPositionMotionValue,
-    zPositionMotionValue,
-  ]);
+  }, [doTransition, position]);
 
   // Update mesh position and scale based on motion values
   useFrame(() => {
     if (meshRef.current) {
-      meshRef.current.position.x = xPositionMotionValue.get();
-      meshRef.current.position.y = yPositionMotionValue.get();
-      meshRef.current.position.z =
-        zPositionMotionValue.get() + zOffsetSpring.get();
+      meshRef.current.position.x = position[0];
+      meshRef.current.position.y = position[1];
+      meshRef.current.position.z = position[2] + zOffsetSpring.get();
       const scale = scaleSpring.get();
       meshRef.current.scale.setScalar(scale);
     }
   });
-
-  // Generate deterministic random image based on position
-  const getImageForPosition = (x: number, y: number): string => {
-    // Use position as seed for deterministic randomness
-    const seed =
-      Math.floor(x / IMAGE_SIZE) * 10000 + Math.floor(y / IMAGE_SIZE);
-
-    // Simple hash function to get a pseudo-random number from seed
-    let hash = seed;
-    hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
-    hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
-    hash = (hash >> 16) ^ hash;
-
-    // Use hash to select image from data
-    const imageIndex = Math.abs(hash) % data.items.length;
-    return data.items[imageIndex].imageUrl;
-  };
-
-  // Get image URL based on position
-  const imageUrl = useMemo(() => {
-    return getImageForPosition(position[0], position[1]);
-  }, [position]);
+  const data = usePositionCache((state) => state.getPositionData(gridPos));
 
   // Memoize texture with cache to avoid reloading the same images
   const texture = useMemo(() => {
     // Check if texture is already cached
-    if (textureCache.has(imageUrl)) {
-      return textureCache.get(imageUrl)!;
+    if (!data) {
+      return null;
+    }
+    if (textureCache.has(data.image_url)) {
+      return textureCache.get(data.image_url)!;
     }
 
-    // Load new texture and cache it
-    const newTexture = textureLoader.load(imageUrl);
-    textureCache.set(imageUrl, newTexture);
+    const newTexture = textureLoader.load(data.image_url);
+    textureCache.set(data.image_url, newTexture);
     return newTexture;
-  }, [imageUrl]);
+  }, [data]);
 
   // Create rounded plane geometry
   const roundedGeometry = useMemo(() => {
     const radius = doTransition ? IMAGE_SIZE / 2 : 10;
     return new geometry.RoundedPlaneGeometry(IMAGE_SIZE, IMAGE_SIZE, radius, 5);
   }, [doTransition]);
+
+  if (!texture) {
+    return (
+      <mesh
+        ref={meshRef}
+        position={position}
+        geometry={roundedGeometry}
+        onPointerEnter={() => setIsHovered(true)}
+        onPointerLeave={() => setIsHovered(false)}
+      >
+        <meshBasicMaterial
+          color="#888888"
+          transparent={true}
+          opacity={0.1}
+          depthTest={!isHovered}
+        />
+      </mesh>
+    );
+  }
 
   return (
     <mesh

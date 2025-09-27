@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 import { useMotionValue, useSpring } from "motion/react";
+import { usePositionCache } from "@/lib/store";
+import { worldPositionToGridPosition } from "@/lib/position";
 
 // Panning sensitivity - adjust these values to change how fast the camera moves
 const MOUSE_PAN_SENSITIVITY = 2;
@@ -16,6 +18,9 @@ export function FlatCameraControls({
 }: {
   isTransitioning: boolean;
 }) {
+  const setGridCameraPosition = usePositionCache(
+    (state) => state.setCameraPosition
+  );
   const { camera, gl } = useThree();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
@@ -67,6 +72,8 @@ export function FlatCameraControls({
         const newY = prev.y + deltaY * MOUSE_PAN_SENSITIVITY;
         xMotionValue.set(newX);
         yMotionValue.set(newY);
+        const newGridPos = worldPositionToGridPosition(newX, newY);
+        setGridCameraPosition(newGridPos);
         return { x: newX, y: newY };
       });
 
