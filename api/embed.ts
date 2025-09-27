@@ -2,8 +2,6 @@
 export const runtime = 'nodejs';          // use Node.js, not Edge
 export const dynamic = 'force-dynamic';   // ensure server execution
 
-import { NextRequest } from 'next/server';
-
 // Force use of image-js instead of sharp for pure JS image processing
 // Note: With Sharp removed via pnpm override, image-js will be used automatically
 
@@ -51,7 +49,7 @@ type Body = {
   image_base64?: string;   // alternative: base64 without data URL prefix
 };
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { text, image_url, image_base64 } = (await req.json()) as Body;
 
