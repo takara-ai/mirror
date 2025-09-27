@@ -1,9 +1,13 @@
 // app/api/embed/route.ts
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';          // use Node.js, not Edge
+export const dynamic = 'force-dynamic';   // ensure server execution
+
+// Optional: cache models in /tmp to reduce cold starts on Vercel
+process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
 
 // Lazy import and initialization to handle ESM compatibility
-let transformersPromise: Promise<typeof import('@xenova/transformers')> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let transformersPromise: Promise<any> | null = null;
 
 async function getTransformers() {
   if (!transformersPromise) {
@@ -23,11 +27,6 @@ let tokenizerPromise: Promise<any> | null = null;
 let textModelPromise: Promise<any> | null = null;
 
 async function initializeModels() {
-  // Set cache directory inside function to avoid top-level execution
-  process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
-  // Force WebAssembly backend to avoid native library issues
-  process.env.ONNX_WEB = '1';
-  
   const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
   
   if (!processorPromise) {
@@ -101,9 +100,9 @@ export async function POST(req: Request) {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (err: unknown) {
+  } catch (err: any) {
     return new Response(
-      JSON.stringify({ error: (err as Error)?.message ?? 'Failed to produce CLIP embeddings' }),
+      JSON.stringify({ error: err?.message ?? 'Failed to produce CLIP embeddings' }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }
