@@ -2,6 +2,10 @@
 export const runtime = 'nodejs';          // use Node.js, not Edge
 export const dynamic = 'force-dynamic';   // ensure server execution
 
+// Force WebAssembly backend to avoid native library issues in serverless environments
+// These MUST be set before any imports
+process.env.ONNX_WEB = '1';
+process.env.ONNX_NODE = '0';
 
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
