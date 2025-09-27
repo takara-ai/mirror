@@ -1,6 +1,6 @@
 // app/api/search/route.ts
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Weaviate client setup
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,23 +8,25 @@ let weaviateClientPromise: Promise<any> | null = null;
 
 async function getWeaviateClient() {
   if (!weaviateClientPromise) {
-    const weaviateModule = await import('weaviate-client');
+    const weaviateModule = await import("weaviate-client");
     const weaviate = weaviateModule.default;
     const { ApiKey } = weaviateModule;
 
     // Connect to Weaviate Cloud
-    const weaviateUrl = process.env.WEAVIATE_HTTP?.replace('https://', '').replace('http://', '');
-    
+    const weaviateUrl = process.env.WEAVIATE_HTTP?.replace(
+      "https://",
+      ""
+    ).replace("http://", "");
+
     if (!weaviateUrl || !process.env.WEAVIATE_API_KEY) {
-      throw new Error('Missing WEAVIATE_HTTP or WEAVIATE_API_KEY environment variables');
+      throw new Error(
+        "Missing WEAVIATE_HTTP or WEAVIATE_API_KEY environment variables"
+      );
     }
 
-    weaviateClientPromise = weaviate.connectToWeaviateCloud(
-      weaviateUrl,
-      {
-        authCredentials: new ApiKey(process.env.WEAVIATE_API_KEY),
-      }
-    );
+    weaviateClientPromise = weaviate.connectToWeaviateCloud(weaviateUrl, {
+      authCredentials: new ApiKey(process.env.WEAVIATE_API_KEY),
+    });
   }
   return weaviateClientPromise;
 }
@@ -32,20 +34,20 @@ async function getWeaviateClient() {
 // Get embedding for image URL using the existing embedding endpoint
 async function getImageEmbedding(imageUrl: string): Promise<number[]> {
   // Use localhost in development, otherwise use the deployed URL
-  const baseUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3000' 
-    : (process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app');
-  
+  const baseUrl = process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
+
   const embedResponse = await fetch(`${baseUrl}/api/embed`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ image_url: imageUrl }),
   });
 
   if (!embedResponse.ok) {
-    throw new Error(`Failed to get image embedding: ${embedResponse.statusText}`);
+    throw new Error(
+      `Failed to get image embedding: ${embedResponse.statusText}`
+    );
   }
 
   const embedResult = await embedResponse.json();
@@ -55,20 +57,20 @@ async function getImageEmbedding(imageUrl: string): Promise<number[]> {
 // Get embedding for text using the existing embedding endpoint
 async function getTextEmbedding(text: string): Promise<number[]> {
   // Use localhost in development, otherwise use the deployed URL
-  const baseUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3000' 
-    : (process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app');
-  
+  const baseUrl = process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
+
   const embedResponse = await fetch(`${baseUrl}/api/embed`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ text: text }),
   });
 
   if (!embedResponse.ok) {
-    throw new Error(`Failed to get text embedding: ${embedResponse.statusText}`);
+    throw new Error(
+      `Failed to get text embedding: ${embedResponse.statusText}`
+    );
   }
 
   const embedResult = await embedResponse.json();
@@ -76,11 +78,11 @@ async function getTextEmbedding(text: string): Promise<number[]> {
 }
 
 type SearchBody = {
-  vector?: number[];        // Direct vector for search
-  image_url?: string;       // Image URL to get embedding and search
-  text?: string;           // Text query to get embedding and search
-  top_k?: number;          // Number of results to return (default: 50)
-  threshold?: number;      // Minimum similarity threshold (optional)
+  vector?: number[]; // Direct vector for search
+  image_url?: string; // Image URL to get embedding and search
+  text?: string; // Text query to get embedding and search
+  top_k?: number; // Number of results to return (default: 50)
+  threshold?: number; // Minimum similarity threshold (optional)
 };
 
 type SearchResult = {
@@ -94,13 +96,21 @@ type SearchResult = {
 
 export async function POST(req: Request) {
   try {
-    const { vector, image_url, text, top_k = 50, threshold } = (await req.json()) as SearchBody;
+    const {
+      vector,
+      image_url,
+      text,
+      top_k = 50,
+      threshold,
+    } = (await req.json()) as SearchBody;
 
     // Validate input
     if (!vector && !image_url && !text) {
       return new Response(
-        JSON.stringify({ error: 'Provide either vector, image_url, or text for search.' }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
+        JSON.stringify({
+          error: "Provide either vector, image_url, or text for search.",
+        }),
+        { status: 400, headers: { "content-type": "application/json" } }
       );
     }
 
@@ -112,8 +122,10 @@ export async function POST(req: Request) {
         searchVector = await getImageEmbedding(image_url);
       } catch {
         return new Response(
-          JSON.stringify({ error: 'Failed to process image URL for embedding.' }),
-          { status: 400, headers: { 'content-type': 'application/json' } }
+          JSON.stringify({
+            error: "Failed to process image URL for embedding.",
+          }),
+          { status: 400, headers: { "content-type": "application/json" } }
         );
       }
     }
@@ -124,16 +136,16 @@ export async function POST(req: Request) {
         searchVector = await getTextEmbedding(text);
       } catch {
         return new Response(
-          JSON.stringify({ error: 'Failed to process text for embedding.' }),
-          { status: 400, headers: { 'content-type': 'application/json' } }
+          JSON.stringify({ error: "Failed to process text for embedding." }),
+          { status: 400, headers: { "content-type": "application/json" } }
         );
       }
     }
 
     if (!searchVector) {
       return new Response(
-        JSON.stringify({ error: 'No valid vector available for search.' }),
-        { status: 400, headers: { 'content-type': 'application/json' } }
+        JSON.stringify({ error: "No valid vector available for search." }),
+        { status: 400, headers: { "content-type": "application/json" } }
       );
     }
 
@@ -141,19 +153,19 @@ export async function POST(req: Request) {
     const client = await getWeaviateClient();
 
     // Get the Image collection
-    const imageCollection = client.collections.get('Image');
+    const imageCollection = client.collections.get("Image");
 
     // Perform vector search using the v4 API
     const searchOptions: Record<string, unknown> = {
       limit: top_k,
-      returnMetadata: ['distance'],
+      returnMetadata: ["distance"],
     };
 
     // Add distance threshold if provided
     if (threshold !== undefined) {
       searchOptions.where = {
-        path: ['_additional', 'distance'],
-        operator: 'LessThan',
+        path: ["_additional", "distance"],
+        operator: "LessThan",
         valueNumber: 1 - threshold, // Convert similarity threshold to distance
       };
     }
@@ -180,22 +192,26 @@ export async function POST(req: Request) {
       }
     }
 
-    return new Response(JSON.stringify({
-      results,
-      count: results.length,
-      query_vector_used: !!vector,
-      query_image_url_used: !!image_url,
-      query_text_used: !!text,
-    }), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    });
-
-  } catch (err: unknown) {
-    console.error('Search error:', err);
     return new Response(
-      JSON.stringify({ error: (err as Error)?.message ?? 'Failed to perform vector search' }),
-      { status: 500, headers: { 'content-type': 'application/json' } }
+      JSON.stringify({
+        results,
+        count: results.length,
+        query_vector_used: !!vector,
+        query_image_url_used: !!image_url,
+        query_text_used: !!text,
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
+  } catch (err: unknown) {
+    console.error("Search error:", err);
+    return new Response(
+      JSON.stringify({
+        error: (err as Error)?.message ?? "Failed to perform vector search",
+      }),
+      { status: 500, headers: { "content-type": "application/json" } }
     );
   }
 }
@@ -206,25 +222,31 @@ export async function GET() {
     const client = await getWeaviateClient();
 
     // Simple connectivity check - try to get the Image collection
-    const imageCollection = client.collections.get('Image');
+    const imageCollection = client.collections.get("Image");
     await imageCollection.query.fetchObjects({ limit: 1 });
 
-    return new Response(JSON.stringify({
-      status: 'ok',
-      weaviate_connected: true,
-      message: 'Vector search API is ready'
-    }), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        status: "ok",
+        weaviate_connected: true,
+        message: "Vector search API is ready",
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }
+    );
   } catch (err: unknown) {
-    return new Response(JSON.stringify({
-      status: 'error',
-      weaviate_connected: false,
-      error: (err as Error)?.message ?? 'Weaviate connection failed'
-    }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        status: "error",
+        weaviate_connected: false,
+        error: (err as Error)?.message ?? "Weaviate connection failed",
+      }),
+      {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      }
+    );
   }
 }
