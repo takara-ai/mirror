@@ -32,7 +32,9 @@ go.work.sum
 # .vscode/
 
 
+# Node Stuff
+node_modules/
+.vercel
+# python
 .venv
-data/**
 
-node_modules

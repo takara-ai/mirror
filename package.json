@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "image-js": "^1.0.0",
+    "sharp": "0.34.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "next": "15.5.4"
