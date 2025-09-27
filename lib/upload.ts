@@ -42,7 +42,7 @@ async function getImageEmbedding(imageUrl: string): Promise<number[]> {
 }
 
 export async function uploadImage(
-  input: File | Blob | ArrayBuffer | Buffer | Uint8Array,
+  input: File | Blob,
   opts: { filename?: string; contentType?: string } = {}
 ): Promise<UploadResult> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
