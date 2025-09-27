@@ -3,13 +3,6 @@ export const runtime = 'nodejs';          // use Node.js, not Edge
 export const dynamic = 'force-dynamic';   // ensure server execution
 
 import { NextRequest } from 'next/server';
-import {
-  AutoProcessor,
-  AutoTokenizer,
-  CLIPVisionModelWithProjection,
-  CLIPTextModelWithProjection,
-  RawImage,
-} from '@xenova/transformers';
 
 // Force use of image-js instead of sharp for pure JS image processing
 // Note: With Sharp removed via pnpm override, image-js will be used automatically
@@ -17,11 +10,40 @@ import {
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
 
+// Lazy import and initialization to handle ESM compatibility
+let transformersPromise: Promise<any> | null = null;
+
+async function getTransformers() {
+  if (!transformersPromise) {
+    transformersPromise = import('@xenova/transformers');
+  }
+  return transformersPromise;
+}
+
 // Lazy, shared loads (module-scope, reused across invocations)
-const processorPromise = AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
-const visionModelPromise = CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
-const tokenizerPromise = AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
-const textModelPromise = CLIPTextModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
+let processorPromise: Promise<any> | null = null;
+let visionModelPromise: Promise<any> | null = null;
+let tokenizerPromise: Promise<any> | null = null;
+let textModelPromise: Promise<any> | null = null;
+
+async function initializeModels() {
+  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
+  
+  if (!processorPromise) {
+    processorPromise = AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
+  }
+  if (!visionModelPromise) {
+    visionModelPromise = CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
+  }
+  if (!tokenizerPromise) {
+    tokenizerPromise = AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
+  }
+  if (!textModelPromise) {
+    textModelPromise = CLIPTextModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
+  }
+  
+  return { processorPromise, visionModelPromise, tokenizerPromise, textModelPromise };
+}
 
 type Body = {
   text?: string;
@@ -35,6 +57,9 @@ export async function POST(req: NextRequest) {
 
     const out: { text_embedding?: number[]; image_embedding?: number[] } = {};
 
+    // Initialize models with dynamic imports
+    const { processorPromise, visionModelPromise, tokenizerPromise, textModelPromise } = await initializeModels();
+
     // Text embedding (optional)
     if (typeof text === 'string') {
       const [tok, textModel] = await Promise.all([tokenizerPromise, textModelPromise]);
@@ -45,6 +70,7 @@ export async function POST(req: NextRequest) {
 
     // Image embedding (optional)
     if (image_url || image_base64) {
+      const { RawImage } = await getTransformers();
       const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
 
       let image: any;
