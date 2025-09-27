@@ -38,5 +38,8 @@ node_modules/
 .next
 # python
 .venv
-
 .env*.local
+
+public/data/**
+.DS_Store
+
