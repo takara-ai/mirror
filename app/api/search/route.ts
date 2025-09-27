@@ -3,7 +3,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Weaviate client setup
-let weaviateClientPromise: Promise<unknown> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let weaviateClientPromise: Promise<any> | null = null;
 
 async function getWeaviateClient() {
   if (!weaviateClientPromise) {

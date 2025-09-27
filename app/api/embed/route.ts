@@ -13,10 +13,14 @@ async function getTransformers() {
 }
 
 // Lazy, shared loads (module-scope, reused across invocations)
-let processorPromise: Promise<unknown> | null = null;
-let visionModelPromise: Promise<unknown> | null = null;
-let tokenizerPromise: Promise<unknown> | null = null;
-let textModelPromise: Promise<unknown> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let processorPromise: Promise<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let visionModelPromise: Promise<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let tokenizerPromise: Promise<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let textModelPromise: Promise<any> | null = null;
 
 async function initializeModels() {
   // Set cache directory inside function to avoid top-level execution
@@ -68,7 +72,8 @@ export async function POST(req: Request) {
       const { RawImage } = await getTransformers();
       const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
 
-      let image: unknown;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let image: any;
       if (image_url) {
         // RawImage.read can accept a URL and will use image-js backend
         image = await RawImage.read(image_url);
