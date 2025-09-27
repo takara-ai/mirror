@@ -16,7 +16,7 @@ let cachedTokenizer: any = null;
 let cachedTextModel: any = null;
 
 async function getModels() {
-  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await import('@xenova/transformers');
+  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await import('@huggingface/transformers');
   
   if (!cachedProcessor) {
     cachedProcessor = await AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
     // Image embedding (optional)
     if (image_url || image_base64) {
-      const { RawImage } = await import('@xenova/transformers');
+      const { RawImage } = await import('@huggingface/transformers');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let image: any;

@@ -11,26 +11,27 @@
     "index": "node scripts/index-images.js"
   },
   "dependencies": {
-    "@vercel/blob": "^0.23.4",
+    "@huggingface/transformers": "^3.7.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
     "@types/three": "^0.180.0",
+    "@vercel/blob": "^0.23.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.3.1",
+    "image-js": "^1.0.0",
     "lucide-react": "^0.544.0",
     "maath": "^0.10.8",
     "motion": "^12.23.22",
     "next": "15.5.4",
-    "@huggingface/transformers": "^3.7.0",
-    "dotenv": "^16.3.1",
-    "image-js": "^1.0.0",
+    "onnxruntime-node": "^1.23.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "sharp": "0.34.4",
-    "weaviate-client": "^3.9.0",
     "tailwind-merge": "^3.3.1",
-    "three": "^0.180.0"
+    "three": "^0.180.0",
+    "weaviate-client": "^3.9.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
