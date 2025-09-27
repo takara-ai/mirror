@@ -19,7 +19,7 @@ import { put } from '@vercel/blob';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname, basename } from 'path';
 import { config } from 'dotenv';
-import weaviate, { ApiKey } from 'weaviate-client';
+import weaviate from 'weaviate-client';
 import sharp from 'sharp';
 
 // Load environment variables from .env.local
@@ -46,7 +46,6 @@ for (const envVar of requiredEnvVars) {
 
 // Initialize clients
 let weaviateClient;
-let blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
 async function initializeClients() {
   try {
@@ -142,7 +141,7 @@ async function getImageEmbedding(imageUrl) {
       try {
         const errorBody = await response.text();
         errorMessage += ` - ${errorBody}`;
-      } catch (e) {
+      } catch {
         // Ignore error reading response body
       }
       throw new Error(errorMessage);
@@ -225,7 +224,7 @@ async function ensureWeaviateSchema() {
 
     // Try to create the collection - modern Weaviate API uses collections instead of classes
     try {
-      const collection = await weaviateClient.collections.create({
+      await weaviateClient.collections.create({
         name: 'Image',
         description: 'Image collection for vector search',
         properties: [
