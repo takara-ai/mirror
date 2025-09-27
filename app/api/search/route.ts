@@ -31,7 +31,12 @@ async function getWeaviateClient() {
 
 // Get embedding for image URL using the existing embedding endpoint
 async function getImageEmbedding(imageUrl: string): Promise<number[]> {
-  const embedResponse = await fetch(`${process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app'}/api/embed`, {
+  // Use localhost in development, otherwise use the deployed URL
+  const baseUrl = process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:3000' 
+    : (process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app');
+  
+  const embedResponse = await fetch(`${baseUrl}/api/embed`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -49,7 +54,12 @@ async function getImageEmbedding(imageUrl: string): Promise<number[]> {
 
 // Get embedding for text using the existing embedding endpoint
 async function getTextEmbedding(text: string): Promise<number[]> {
-  const embedResponse = await fetch(`${process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app'}/api/embed`, {
+  // Use localhost in development, otherwise use the deployed URL
+  const baseUrl = process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:3000' 
+    : (process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app');
+  
+  const embedResponse = await fetch(`${baseUrl}/api/embed`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
