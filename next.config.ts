@@ -1,15 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@xenova/transformers'],
-  },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('@xenova/transformers');
-    }
-    return config;
-  },
+  // Remove webpack externals that might interfere with @xenova/transformers loading
 };
 
 export default nextConfig;

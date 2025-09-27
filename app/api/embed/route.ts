@@ -100,9 +100,9 @@ export async function POST(req: Request) {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return new Response(
-      JSON.stringify({ error: err?.message ?? 'Failed to produce CLIP embeddings' }),
+      JSON.stringify({ error: (err as Error)?.message ?? 'Failed to produce CLIP embeddings' }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }
