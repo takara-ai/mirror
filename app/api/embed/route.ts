@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Lazy import and initialization to handle ESM compatibility
-let transformersPromise: Promise<any> | null = null;
+let transformersPromise: Promise<typeof import('@xenova/transformers')> | null = null;
 
 async function getTransformers() {
   if (!transformersPromise) {
@@ -13,10 +13,10 @@ async function getTransformers() {
 }
 
 // Lazy, shared loads (module-scope, reused across invocations)
-let processorPromise: Promise<any> | null = null;
-let visionModelPromise: Promise<any> | null = null;
-let tokenizerPromise: Promise<any> | null = null;
-let textModelPromise: Promise<any> | null = null;
+let processorPromise: Promise<unknown> | null = null;
+let visionModelPromise: Promise<unknown> | null = null;
+let tokenizerPromise: Promise<unknown> | null = null;
+let textModelPromise: Promise<unknown> | null = null;
 
 async function initializeModels() {
   // Set cache directory inside function to avoid top-level execution
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       const { RawImage } = await getTransformers();
       const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
 
-      let image: any;
+      let image: unknown;
       if (image_url) {
         // RawImage.read can accept a URL and will use image-js backend
         image = await RawImage.read(image_url);
@@ -94,9 +94,9 @@ export async function POST(req: Request) {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return new Response(
-      JSON.stringify({ error: err?.message ?? 'Failed to produce CLIP embeddings' }),
+      JSON.stringify({ error: (err as Error)?.message ?? 'Failed to produce CLIP embeddings' }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }

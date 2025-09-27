@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Weaviate client setup
-let weaviateClientPromise: Promise<any> | null = null;
+let weaviateClientPromise: Promise<unknown> | null = null;
 
 async function getWeaviateClient() {
   if (!weaviateClientPromise) {
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     if (image_url && !vector) {
       try {
         searchVector = await getImageEmbedding(image_url);
-      } catch (error) {
+      } catch {
         return new Response(
           JSON.stringify({ error: 'Failed to process image URL for embedding.' }),
           { status: 400, headers: { 'content-type': 'application/json' } }
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     if (text && !vector && !image_url) {
       try {
         searchVector = await getTextEmbedding(text);
-      } catch (error) {
+      } catch {
         return new Response(
           JSON.stringify({ error: 'Failed to process text for embedding.' }),
           { status: 400, headers: { 'content-type': 'application/json' } }
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     const imageCollection = client.collections.get('Image');
 
     // Perform vector search using the v4 API
-    const searchOptions: any = {
+    const searchOptions: Record<string, unknown> = {
       limit: top_k,
       returnMetadata: ['distance'],
     };
@@ -180,10 +180,10 @@ export async function POST(req: Request) {
       headers: { 'content-type': 'application/json' },
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Search error:', err);
     return new Response(
-      JSON.stringify({ error: err?.message ?? 'Failed to perform vector search' }),
+      JSON.stringify({ error: (err as Error)?.message ?? 'Failed to perform vector search' }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }
@@ -206,11 +206,11 @@ export async function GET() {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return new Response(JSON.stringify({
       status: 'error',
       weaviate_connected: false,
-      error: err?.message ?? 'Weaviate connection failed'
+      error: (err as Error)?.message ?? 'Weaviate connection failed'
     }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
