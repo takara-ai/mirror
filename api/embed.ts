@@ -2,9 +2,6 @@
 export const runtime = 'nodejs';          // use Node.js, not Edge
 export const dynamic = 'force-dynamic';   // ensure server execution
 
-// Force use of image-js instead of sharp for pure JS image processing
-// Note: With Sharp removed via pnpm override, image-js will be used automatically
-
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
 
@@ -25,7 +22,8 @@ let tokenizerPromise: Promise<any> | null = null;
 let textModelPromise: Promise<any> | null = null;
 
 async function initializeModels() {
-  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
+  const transformers = await getTransformers();
+  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = transformers;
   
   if (!processorPromise) {
     processorPromise = AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
