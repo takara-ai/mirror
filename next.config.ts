@@ -1,12 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@xenova/transformers'],
-  },
+  // Indicate that these packages should not be bundled by webpack
+  serverExternalPackages: ['sharp', 'onnxruntime-node'],
   webpack: (config, { isServer }) => {
     if (isServer) {
-      config.externals.push('@xenova/transformers');
+      // Help resolve onnxruntime native binaries
+      config.externals = {
+        ...config.externals,
+        'onnxruntime-node': 'commonjs onnxruntime-node',
+      };
     }
     return config;
   },
