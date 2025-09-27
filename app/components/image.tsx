@@ -1,27 +1,16 @@
 "use client";
 
-import { useRef, useMemo, useState, useEffect } from "react";
-import { Mesh, TextureLoader, Texture } from "three";
-import { geometry } from "maath";
-import {
-  SpringOptions,
-  useMotionValue,
-  useSpring,
-  animate,
-} from "motion/react";
-import { useFrame } from "@react-three/fiber";
-import { CELL_SIZE, IMAGE_SIZE } from "./flat";
-import { SearchResult } from "../page";
-import { TextGeometry } from "three/examples/jsm/Addons";
-import { Text3D } from "@react-three/drei";
 import { worldPositionToGridPosition } from "@/lib/position";
 import { usePositionCache } from "@/lib/store";
-import { useMutation } from "@tanstack/react-query";
+import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
+import { geometry } from "maath";
+import { useMotionValue, useSpring } from "motion/react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { Mesh } from "three";
+import { IMAGE_SIZE } from "./flat";
 
-// Global texture cache to avoid reloading the same images
-const textureCache = new Map<string, Texture>();
-const textureLoader = new TextureLoader();
-const HOVER_OFFSET = 100;
+const HOVER_OFFSET = 0;
 
 export function Image({
   position,
@@ -79,22 +68,8 @@ export function Image({
       meshRef.current.scale.setScalar(scale);
     }
   });
+
   const data = usePositionCache((state) => state.getPositionData(gridPos));
-
-  // Memoize texture with cache to avoid reloading the same images
-  const texture = useMemo(() => {
-    // Check if texture is already cached
-    if (!data) {
-      return null;
-    }
-    if (textureCache.has(data.image_url)) {
-      return textureCache.get(data.image_url)!;
-    }
-
-    const newTexture = textureLoader.load(data.image_url);
-    textureCache.set(data.image_url, newTexture);
-    return newTexture;
-  }, [data]);
 
   // Create rounded plane geometry
   const roundedGeometry = useMemo(() => {
@@ -102,7 +77,7 @@ export function Image({
     return new geometry.RoundedPlaneGeometry(IMAGE_SIZE, IMAGE_SIZE, radius, 5);
   }, [doTransition]);
 
-  if (!texture) {
+  if (!data?.image_url) {
     return (
       <mesh
         ref={meshRef}
@@ -111,30 +86,43 @@ export function Image({
         onPointerEnter={() => setIsHovered(true)}
         onPointerLeave={() => setIsHovered(false)}
       >
-        <meshBasicMaterial
-          color="#888888"
-          transparent={true}
-          opacity={0.1}
-          depthTest={!isHovered}
-        />
+        <meshBasicMaterial color="#888888" transparent={true} opacity={0.1} />
       </mesh>
     );
   }
+  return (
+    <ImageMesh
+      ref={meshRef}
+      position={position}
+      roundedGeometry={roundedGeometry}
+      url={data?.image_url}
+      onPointerEnter={() => setIsHovered(true)}
+      onPointerLeave={() => setIsHovered(false)}
+    />
+  );
+}
+
+const ImageMesh = forwardRef<
+  Mesh,
+  {
+    position: [number, number, number];
+    roundedGeometry: geometry.RoundedPlaneGeometry;
+    url?: string;
+    onPointerEnter: () => void;
+    onPointerLeave: () => void;
+  }
+>(({ position, roundedGeometry, url, onPointerEnter, onPointerLeave }, ref) => {
+  const texture = url ? useTexture(url) : null;
 
   return (
     <mesh
-      ref={meshRef}
+      ref={ref}
       position={position}
       geometry={roundedGeometry}
-      onPointerEnter={() => setIsHovered(true)}
-      onPointerLeave={() => setIsHovered(false)}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
     >
-      <meshBasicMaterial
-        map={texture}
-        transparent={true}
-        opacity={1}
-        depthTest={!isHovered}
-      />
+      <meshBasicMaterial map={texture} />
     </mesh>
   );
-}
+});
