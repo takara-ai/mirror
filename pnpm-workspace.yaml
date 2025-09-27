@@ -2,5 +2,7 @@ ignoredBuiltDependencies:
   - protobufjs
 
 onlyBuiltDependencies:
-  - sharp
+  - '@tailwindcss/oxide'
   - onnxruntime-node
+  - sharp
+  - unrs-resolver
