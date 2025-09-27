@@ -25,6 +25,8 @@ let textModelPromise: Promise<any> | null = null;
 async function initializeModels() {
   // Set cache directory inside function to avoid top-level execution
   process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
+  // Force WebAssembly backend to avoid native library issues
+  process.env.ONNX_WEB = '1';
   
   const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
   
