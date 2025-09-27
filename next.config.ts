@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Remove webpack externals that might interfere with @xenova/transformers loading
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Prevent onnxruntime-node from being externalized to avoid native library issues
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'onnxruntime-node': false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
