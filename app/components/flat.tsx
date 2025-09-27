@@ -8,13 +8,13 @@ import data from "../assets/data.json";
 
 // Grid configuration
 export const IMAGE_SIZE = 200; // Size of each square image
-const GAP = 20; // Gap between images
+const GAP = 15; // Gap between images
 const CELL_SIZE = IMAGE_SIZE + GAP; // Total space per cell (image + gap)
 const VIEWPORT_MARGIN = 1000; // Extra margin around viewport
 const BORDER_PADDING = 2; // Extra images beyond viewport to prevent edge transitions
 const VERTICAL_OFFSET = 0; // Vertical offset between columns
 
-export function Flat() {
+export function Flat({ doTransition }: { doTransition: boolean }) {
   const groupRef = useRef<Group>(null);
   const { camera } = useThree();
   const [gridPositions, setGridPositions] = useState<
@@ -33,9 +33,6 @@ export function Flat() {
     // Snap to grid using modulo (using CELL_SIZE for proper spacing)
     const gridStartX = Math.floor(topLeftX / CELL_SIZE) * CELL_SIZE;
     const gridStartY = Math.floor(topLeftY / CELL_SIZE) * CELL_SIZE;
-
-    // Calculate the world column index based on camera position
-    const worldColumnIndex = Math.floor(cameraPos.x / CELL_SIZE);
 
     // Calculate how many grid cells we need to cover the viewport
     const viewportWidth = VIEWPORT_MARGIN * 2;
@@ -90,7 +87,11 @@ export function Flat() {
   return (
     <group ref={groupRef}>
       {gridPositions.map((gridPos) => (
-        <Image key={gridPos.id} position={gridPos.position} />
+        <Image
+          key={gridPos.id}
+          position={gridPos.position}
+          doTransition={doTransition}
+        />
       ))}
     </group>
   );

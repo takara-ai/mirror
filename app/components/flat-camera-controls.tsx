@@ -11,11 +11,15 @@ const TOUCHPAD_PAN_SENSITIVITY = 3;
 const Z_DISTANCE_DRAGGING = 1000;
 const Z_DISTANCE_IDLE = 800;
 
-export function FlatCameraControls() {
+export function FlatCameraControls({
+  isTransitioning,
+}: {
+  isTransitioning: boolean;
+}) {
   const { camera, gl } = useThree();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
-  const [cameraPosition, setCameraPosition] = useState({ x: 0, y: 0 });
+  const [_, setCameraPosition] = useState({ x: 0, y: 0 });
 
   // Motion values for smooth transitions
   const zMotionValue = useMotionValue(Z_DISTANCE_IDLE);
