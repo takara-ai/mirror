@@ -36,3 +36,6 @@ go.work.sum
 data/**
 
 node_modules
+.next
+public/data/**
+.DS_Store
