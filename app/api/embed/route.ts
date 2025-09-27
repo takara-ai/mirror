@@ -2,52 +2,36 @@
 export const runtime = 'nodejs';          // use Node.js, not Edge
 export const dynamic = 'force-dynamic';   // ensure server execution
 
-// Force WebAssembly backend to avoid native library issues in serverless environments
-// These MUST be set before any imports
-process.env.ONNX_WEB = '1';
-process.env.ONNX_NODE = '0';
-
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
 
-// Lazy import and initialization to handle ESM compatibility
+// Singleton pattern for model caching as recommended by Hugging Face
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let transformersPromise: Promise<any> | null = null;
+let cachedProcessor: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedVisionModel: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedTokenizer: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let cachedTextModel: any = null;
 
-async function getTransformers() {
-  if (!transformersPromise) {
-    transformersPromise = import('@xenova/transformers');
-  }
-  return transformersPromise;
-}
-
-// Lazy, shared loads (module-scope, reused across invocations)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let processorPromise: Promise<any> | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let visionModelPromise: Promise<any> | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let tokenizerPromise: Promise<any> | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let textModelPromise: Promise<any> | null = null;
-
-async function initializeModels() {
-  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
+async function getModels() {
+  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await import('@xenova/transformers');
   
-  if (!processorPromise) {
-    processorPromise = AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
+  if (!cachedProcessor) {
+    cachedProcessor = await AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
   }
-  if (!visionModelPromise) {
-    visionModelPromise = CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
+  if (!cachedVisionModel) {
+    cachedVisionModel = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
   }
-  if (!tokenizerPromise) {
-    tokenizerPromise = AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
+  if (!cachedTokenizer) {
+    cachedTokenizer = await AutoTokenizer.from_pretrained('Xenova/clip-vit-base-patch16');
   }
-  if (!textModelPromise) {
-    textModelPromise = CLIPTextModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
+  if (!cachedTextModel) {
+    cachedTextModel = await CLIPTextModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch16');
   }
   
-  return { processorPromise, visionModelPromise, tokenizerPromise, textModelPromise };
+  return { processor: cachedProcessor, visionModel: cachedVisionModel, tokenizer: cachedTokenizer, textModel: cachedTextModel };
 }
 
 type Body = {
@@ -62,21 +46,19 @@ export async function POST(req: Request) {
 
     const out: { text_embedding?: number[]; image_embedding?: number[] } = {};
 
-    // Initialize models with dynamic imports
-    const { processorPromise, visionModelPromise, tokenizerPromise, textModelPromise } = await initializeModels();
+    // Get cached models using singleton pattern
+    const { processor, visionModel, tokenizer, textModel } = await getModels();
 
     // Text embedding (optional)
     if (typeof text === 'string') {
-      const [tok, textModel] = await Promise.all([tokenizerPromise, textModelPromise]);
-      const inputs = tok([text], { padding: true, truncation: true });
+      const inputs = tokenizer([text], { padding: true, truncation: true });
       const { text_embeds } = await textModel(inputs);
       out.text_embedding = Array.from(text_embeds.data as Float32Array);
     }
 
     // Image embedding (optional)
     if (image_url || image_base64) {
-      const { RawImage } = await getTransformers();
-      const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
+      const { RawImage } = await import('@xenova/transformers');
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let image: any;
@@ -89,7 +71,7 @@ export async function POST(req: Request) {
         image = await RawImage.read(dataUrl);
       }
 
-      const image_inputs = await proc(image);
+      const image_inputs = await processor(image);
       const { image_embeds } = await visionModel(image_inputs);
       out.image_embedding = Array.from(image_embeds.data as Float32Array);
     }
