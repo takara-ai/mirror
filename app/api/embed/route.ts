@@ -1,9 +1,6 @@
-// api/embed.ts
-export const runtime = 'nodejs';          // use Node.js, not Edge
-export const dynamic = 'force-dynamic';   // ensure server execution
-
-// Optional: cache models in /tmp to reduce cold starts on Vercel
-process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
+// app/api/embed/route.ts
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Lazy import and initialization to handle ESM compatibility
 let transformersPromise: Promise<any> | null = null;
@@ -22,6 +19,9 @@ let tokenizerPromise: Promise<any> | null = null;
 let textModelPromise: Promise<any> | null = null;
 
 async function initializeModels() {
+  // Set cache directory inside function to avoid top-level execution
+  process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
+  
   const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
   
   if (!processorPromise) {
