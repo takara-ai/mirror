@@ -1,12 +1,9 @@
-// api/embed.ts
-export const runtime = 'nodejs';          // use Node.js, not Edge
-export const dynamic = 'force-dynamic';   // ensure server execution
-
-// Optional: cache models in /tmp to reduce cold starts on Vercel
-process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
+// app/api/embed/route.ts
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Lazy import and initialization to handle ESM compatibility
-let transformersPromise: Promise<any> | null = null;
+let transformersPromise: Promise<typeof import('@xenova/transformers')> | null = null;
 
 async function getTransformers() {
   if (!transformersPromise) {
@@ -16,12 +13,19 @@ async function getTransformers() {
 }
 
 // Lazy, shared loads (module-scope, reused across invocations)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let processorPromise: Promise<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let visionModelPromise: Promise<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let tokenizerPromise: Promise<any> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let textModelPromise: Promise<any> | null = null;
 
 async function initializeModels() {
+  // Set cache directory inside function to avoid top-level execution
+  process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
+  
   const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
   
   if (!processorPromise) {
@@ -68,6 +72,7 @@ export async function POST(req: Request) {
       const { RawImage } = await getTransformers();
       const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let image: any;
       if (image_url) {
         // RawImage.read can accept a URL and will use image-js backend
@@ -94,9 +99,9 @@ export async function POST(req: Request) {
       status: 200,
       headers: { 'content-type': 'application/json' },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return new Response(
-      JSON.stringify({ error: err?.message ?? 'Failed to produce CLIP embeddings' }),
+      JSON.stringify({ error: (err as Error)?.message ?? 'Failed to produce CLIP embeddings' }),
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }

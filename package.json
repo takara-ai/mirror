@@ -2,13 +2,17 @@
   "name": "mirror",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "index": "node scripts/index-images.js",
+    "index-images": "node scripts/index-images.js"
   },
   "dependencies": {
+    "@vercel/blob": "^0.23.4",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
@@ -19,11 +23,15 @@
     "maath": "^0.10.8",
     "motion": "^12.23.22",
     "next": "15.5.4",
+
     "@xenova/transformers": "^2.17.2",
+    "dotenv": "^16.3.1",
     "image-js": "^1.0.0",
-    "sharp": "0.34.4",
+    "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "sharp": "0.34.4",
+    "weaviate-client": "^3.9.0",
     "tailwind-merge": "^3.3.1",
     "three": "^0.180.0"
   },

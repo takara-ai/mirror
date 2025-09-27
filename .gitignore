@@ -35,10 +35,11 @@ go.work.sum
 # Node Stuff
 node_modules/
 .vercel
+.next
 # python
 .venv
+.env*.local
 
-node_modules
-.next
 public/data/**
 .DS_Store
+
