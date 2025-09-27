@@ -3,3 +3,4 @@ ignoredBuiltDependencies:
 
 onlyBuiltDependencies:
   - sharp
+  - onnxruntime-node
