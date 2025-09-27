@@ -37,4 +37,4 @@ node_modules/
 .vercel
 # python
 .venv
-
+.next
