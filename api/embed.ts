@@ -22,8 +22,7 @@ let tokenizerPromise: Promise<any> | null = null;
 let textModelPromise: Promise<any> | null = null;
 
 async function initializeModels() {
-  const transformers = await getTransformers();
-  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = transformers;
+  const { AutoProcessor, AutoTokenizer, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } = await getTransformers();
   
   if (!processorPromise) {
     processorPromise = AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch16');
