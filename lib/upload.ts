@@ -53,7 +53,7 @@ export async function uploadImage(
   const id = filename.replace(/\.[^/.]+$/, ''); // Remove extension for ID
 
   // Upload to Vercel Blob
-  const blob = await put(filename, input as any, {
+  const blob = await put(filename, input, {
     access: 'public',
     addRandomSuffix: true,
   });
