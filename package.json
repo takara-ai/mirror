@@ -29,6 +29,7 @@
     "next": "15.5.4",
     "node": "^24.9.0",
     "onnxruntime-web": "^1.23.0",
+    "openai": "^5.23.1",
     "protobufjs": "^7.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
