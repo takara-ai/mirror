@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import { gridPositionToWorldPosition } from "./position";
+import { Texture, TextureLoader } from "three";
+
+const textureLoader = new TextureLoader();
+const LIMIT = 100;
 
 export type SearchResult = {
   id: string;
@@ -8,6 +12,8 @@ export type SearchResult = {
   width: number;
   height: number;
   score: number;
+} & {
+  texture?: Texture;
 };
 
 type Position2D = {
@@ -196,7 +202,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           },
           body: JSON.stringify({
             image_url: existingData.image_url,
-            top_k: 300,
+            top_k: LIMIT,
           }),
         });
       } else if (text) {
@@ -205,7 +211,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: text, top_k: 300 }),
+          body: JSON.stringify({ text: text, top_k: 50 }),
         });
       } else if (nearestData) {
         response = await fetch("/api/search", {
@@ -215,7 +221,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           },
           body: JSON.stringify({
             image_url: nearestData.image_url,
-            top_k: 300,
+            top_k: LIMIT,
           }),
         });
       } else {
@@ -226,7 +232,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           },
           body: JSON.stringify({
             text: Math.random().toString(36).substring(2, 15),
-            top_k: 300,
+            top_k: LIMIT,
           }),
         });
       }
@@ -259,7 +265,11 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
 
       for (let i = 0; i < emptyPositions.length; i++) {
         const emptyPosition = emptyPositions[i];
-        state.setPositionData(emptyPosition, data.results[i]);
+        const resultWithTexture = {
+          ...data.results[i],
+          texture: await textureLoader.loadAsync(data.results[i].image_url),
+        };
+        state.setPositionData(emptyPosition, resultWithTexture);
       }
 
       // Return the data for the requested position if available

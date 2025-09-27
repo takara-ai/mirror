@@ -8,10 +8,10 @@ import { usePositionCache } from "@/lib/store";
 import { worldPositionToGridPosition } from "@/lib/position";
 
 // Panning sensitivity - adjust these values to change how fast the camera moves
-const MOUSE_PAN_SENSITIVITY = 2;
-const TOUCHPAD_PAN_SENSITIVITY = 3;
-const Z_DISTANCE_DRAGGING = 1000;
-const Z_DISTANCE_IDLE = 800;
+const MOUSE_PAN_SENSITIVITY = 0.5;
+const TOUCHPAD_PAN_SENSITIVITY = 0.5;
+const Z_DISTANCE_DRAGGING = 110;
+const Z_DISTANCE_IDLE = 70;
 
 export function FlatCameraControls({
   xMotionValue,
