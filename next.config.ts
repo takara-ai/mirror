@@ -6,10 +6,10 @@ const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Help resolve onnxruntime native binaries
-      config.externals = {
-        ...config.externals,
-        'onnxruntime-node': 'commonjs onnxruntime-node',
-      };
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : []),
+        'onnxruntime-node',
+      ];
     }
     return config;
   },
