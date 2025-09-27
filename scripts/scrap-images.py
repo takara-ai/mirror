@@ -15,7 +15,7 @@ def create_download_folder(query):
     """Create download folder based on query"""
     # Encode query for safe filesystem path
     encoded_query = urllib.parse.quote(query.replace(" ", "_"), safe="")
-    folder_path = Path(__file__).parent.parent / "data" / encoded_query
+    folder_path = Path(__file__).parent.parent / "public" / "data" / encoded_query
     folder_path.mkdir(parents=True, exist_ok=True)
     return folder_path
 

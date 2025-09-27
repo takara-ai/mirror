@@ -37,4 +37,10 @@ node_modules/
 .vercel
 # python
 .venv
+
 .next
+
+node_modules
+public/data/**
+.DS_Store
+
