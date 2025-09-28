@@ -1,6 +1,8 @@
 import { toast } from "sonner";
 import { Texture, TextureLoader } from "three";
 import { create } from "zustand";
+import { loadTextureWithAspectRatio } from "./texture";
+import { IMAGE_SIZE } from "@/app/components/flat";
 
 const textureLoader = new TextureLoader();
 const LIMIT = 100;
@@ -357,7 +359,12 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           emptyPositions.map(async (emptyPosition, i) => {
             const resultWithTexture = {
               ...data[i + 1],
-              texture: await textureLoader.loadAsync(data[i + 1].image_url),
+              texture: await loadTextureWithAspectRatio(
+                textureLoader,
+                data[i + 1].image_url,
+                IMAGE_SIZE,
+                IMAGE_SIZE
+              ),
             };
             state.setPositionData(emptyPosition, resultWithTexture);
           })
@@ -376,7 +383,12 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           emptyPositions.map(async (emptyPosition, i) => {
             const resultWithTexture = {
               ...data[i],
-              texture: await textureLoader.loadAsync(data[i].image_url),
+              texture: await loadTextureWithAspectRatio(
+                textureLoader,
+                data[i].image_url,
+                IMAGE_SIZE,
+                IMAGE_SIZE
+              ),
             };
             state.setPositionData(emptyPosition, resultWithTexture);
           })
