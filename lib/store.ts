@@ -280,13 +280,19 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           }),
         });
       } else {
+        const natureAdjectives = [
+          "beautiful", "stunning", "majestic", "serene", "wild", "peaceful",
+          "vibrant", "lush", "dramatic", "ethereal", "pristine", "grand"
+        ];
+        const randomAdjective = natureAdjectives[Math.floor(Math.random() * natureAdjectives.length)];
+
         response = await fetch("/api/search", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            text: Math.random().toString(36).substring(2, 15),
+            text: `${randomAdjective} nature`,
             top_k: LIMIT,
             threshold: THRESHOLD,
           }),
