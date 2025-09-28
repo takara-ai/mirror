@@ -28,6 +28,8 @@ type PositionCacheState = {
   idToPositionMap: Map<string, Position2D>;
   cameraPosition: Position2D;
   isLoading: boolean;
+  selectedItem: SearchResult | undefined;
+  setSelectedItem: (item: SearchResult | undefined) => void;
   setPositionData: (position: Position2D, data: SearchResult) => void;
   getPositionData: (position: Position2D) => SearchResult | undefined;
   getPositionFromId: (id: string) => Position2D | undefined;
@@ -59,6 +61,10 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
   idToPositionMap: new Map<string, Position2D>(),
   cameraPosition: { x: 0, y: 0 },
   isLoading: false,
+  selectedItem: undefined,
+  setSelectedItem: (item: SearchResult | undefined) => {
+    set({ selectedItem: item });
+  },
   setCameraPosition: (position: Position2D) => {
     set({ cameraPosition: position });
   },
@@ -281,10 +287,21 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
         });
       } else {
         const natureAdjectives = [
-          "beautiful", "stunning", "majestic", "serene", "wild", "peaceful",
-          "vibrant", "lush", "dramatic", "ethereal", "pristine", "grand"
+          "beautiful",
+          "stunning",
+          "majestic",
+          "serene",
+          "wild",
+          "peaceful",
+          "vibrant",
+          "lush",
+          "dramatic",
+          "ethereal",
+          "pristine",
+          "grand",
         ];
-        const randomAdjective = natureAdjectives[Math.floor(Math.random() * natureAdjectives.length)];
+        const randomAdjective =
+          natureAdjectives[Math.floor(Math.random() * natureAdjectives.length)];
 
         response = await fetch("/api/search", {
           method: "POST",

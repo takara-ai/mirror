@@ -10,6 +10,8 @@ import { FlatCameraControls } from "./components/flat-camera-controls";
 import { Search } from "./components/search";
 import { Perf } from "r3f-perf";
 import { useSearchParams } from "next/navigation";
+import { Sheet } from "./components/sheet";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 
 export type SearchResult = {
   id: string;
@@ -55,9 +57,8 @@ export default function Home() {
 
   const params = useSearchParams();
   const showDebug = params.get("debug") === "true";
-
   return (
-    <div className="w-full h-screen relative">
+    <div className="w-full h-dvh relative">
       <Canvas
         camera={{ position: [0, 0, 800], fov: 90, near: 0.1, far: 100000 }}
       >
@@ -71,9 +72,9 @@ export default function Home() {
             ySpring={ySpring}
           />
         </Fisheye>
-
         {showDebug && <Perf position="top-left" />}
       </Canvas>
+      <Sheet />
       <Search xMotionValue={xMotionValue} yMotionValue={yMotionValue} />
     </div>
   );

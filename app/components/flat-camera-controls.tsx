@@ -10,6 +10,7 @@ import { worldPositionToGridPosition } from "@/lib/position";
 // Panning sensitivity - adjust these values to change how fast the camera moves
 const MOUSE_PAN_SENSITIVITY = 0.5;
 const TOUCHPAD_PAN_SENSITIVITY = 0.5;
+const TOUCH_PAN_SENSITIVITY = 0.8;
 const Z_DISTANCE_DRAGGING = 110;
 const Z_DISTANCE_IDLE = 70;
 
@@ -30,6 +31,7 @@ export function FlatCameraControls({
   const { camera, gl } = useThree();
   const [isDragging, setIsDragging] = useState(false);
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
+  const [lastTouch, setLastTouch] = useState({ x: 0, y: 0 });
 
   // Motion values for smooth transitions
   const zMotionValue = useMotionValue(Z_DISTANCE_IDLE);
@@ -78,6 +80,45 @@ export function FlatCameraControls({
       setIsDragging(false);
     };
 
+    // Touch events for mobile
+    const handleTouchStart = (event: TouchEvent) => {
+      event.preventDefault();
+      if (event.touches.length === 1) {
+        setIsDragging(true);
+        const touch = event.touches[0];
+        setLastTouch({ x: touch.clientX, y: touch.clientY });
+      }
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      event.preventDefault();
+      if (!isDragging || event.touches.length !== 1) return;
+
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - lastTouch.x;
+      const deltaY = touch.clientY - lastTouch.y;
+
+      // Get current position from motion values
+      const currentX = xMotionValue.get();
+      const currentY = yMotionValue.get();
+
+      const newX = currentX - deltaX * TOUCH_PAN_SENSITIVITY;
+      const newY = currentY + deltaY * TOUCH_PAN_SENSITIVITY;
+
+      xMotionValue.set(newX);
+      yMotionValue.set(newY);
+
+      const newGridPos = worldPositionToGridPosition(newX, newY);
+      setGridCameraPosition(newGridPos);
+
+      setLastTouch({ x: touch.clientX, y: touch.clientY });
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      event.preventDefault();
+      setIsDragging(false);
+    };
+
     // Wheel events for trackpad panning
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
@@ -102,18 +143,38 @@ export function FlatCameraControls({
 
     const canvas = gl.domElement;
 
+    // Mouse events
     canvas.addEventListener("mousedown", handleMouseDown);
     canvas.addEventListener("mousemove", handleMouseMove);
     canvas.addEventListener("mouseup", handleMouseUp);
     canvas.addEventListener("wheel", handleWheel, { passive: false });
 
+    // Touch events
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
+
     return () => {
+      // Mouse events cleanup
       canvas.removeEventListener("mousedown", handleMouseDown);
       canvas.removeEventListener("mousemove", handleMouseMove);
       canvas.removeEventListener("mouseup", handleMouseUp);
       canvas.removeEventListener("wheel", handleWheel);
+
+      // Touch events cleanup
+      canvas.removeEventListener("touchstart", handleTouchStart);
+      canvas.removeEventListener("touchmove", handleTouchMove);
+      canvas.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isDragging, lastMouse, gl.domElement]);
+  }, [
+    isDragging,
+    lastMouse,
+    lastTouch,
+    gl.domElement,
+    xMotionValue,
+    yMotionValue,
+    setGridCameraPosition,
+  ]);
 
   useFrame(() => {
     if (camera instanceof PerspectiveCamera) {
