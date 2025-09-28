@@ -332,6 +332,9 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
         query_image_url_used: boolean;
         query_text_used: boolean;
       };
+      if (!rawData.results) {
+        throw new Error("Error fetching search results");
+      }
       const data = rawData.results.filter((result) =>
         doTresholdFiltering ? result.score > THRESHOLD : true
       );
@@ -381,6 +384,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
       }
     } catch (error) {
       console.error("Failed to fetch search results:", error);
+      toast.error("Failed to fetch search results");
     } finally {
       set({ isLoading: false });
     }
