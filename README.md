@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/takara-ai/mirror/refs/heads/main/app/icon.svg" width="200" alt="Mirror Logo"/>
 
-**Mirror is the fastest and most cost effective way to build web apps with multimodal embeddings.**
+**[Mirror](https://mirror-azure.vercel.app/) is the fastest and most cost effective way to build web apps with multimodal embeddings.**
 
 Backed by OpenAI CLIP, Weaviate and NextJS(Lovable), build the next Pintrest, Instagram or whatever you could imagine with no GPU's, no complex deployments and no drain on your wallet.
 
