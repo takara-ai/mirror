@@ -2,7 +2,7 @@
 
 **Mirror is the fastest and most cost effective way to build web apps with multimodal embeddings.**
 
-Backed by OpenAI CLIP, Weaviate and NextJS, build the next Pintrest, Instagram or whatever you could imagine with no GPU's, no complex deployments and no drain on your wallet.
+Backed by OpenAI CLIP, Weaviate and NextJS(lovable), build the next Pintrest, Instagram or whatever you could imagine with no GPU's, no complex deployments and no drain on your wallet.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftakara-ai%2Fmirror)
 
@@ -10,7 +10,7 @@ We've shipped our frontier UI to demo the capabilities of Mirror, we indexed tho
 
 Below is our serverless solution compared to traditional deployments.
 
-<img src="https://github.com/takara-ai/mirror/blob/main/media/price_comparison.png" width="400" alt="Mirror Logo"/>
+<img src="https://github.com/takara-ai/mirror/blob/main/media/price_comparison.png" width="400" alt="Mirror Demo"/>
 
 
 ## Getting Started
@@ -36,6 +36,10 @@ We also use OpenAI for captioning for further accessibility, if you require this
 OPENAI_API_KEY="[YOUR KEY]"
 ```
 Now run 
+
+```
+pnpm i
+```
 
 ```
 vercel env pull
