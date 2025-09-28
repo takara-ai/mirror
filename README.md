@@ -8,6 +8,9 @@ Backed by OpenAI CLIP, Weaviate and NextJS(lovable), build the next Pintrest, In
 
 We've shipped our frontier UI to demo the capabilities of Mirror, we indexed thousands of images in just a few hours costing less than a few cents and we can enable natural language search over these images forever, only paying for what you use, or if within the free plan, absolutely nothing!
 
+
+<img src="https://github.com/takara-ai/mirror/blob/main/media/mirror.png" width="400" alt="Mirror Demo"/>
+
 Below is our serverless solution compared to traditional deployments.
 
 <img src="https://github.com/takara-ai/mirror/blob/main/media/price_comparison.png" width="400" alt="Mirror Demo"/>
