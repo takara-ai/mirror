@@ -2,11 +2,10 @@
 
 import { worldPositionToGridPosition } from "@/lib/position";
 import { usePositionCache } from "@/lib/store";
-import { useTexture } from "@react-three/drei";
 import { geometry } from "maath";
 import { useMemo } from "react";
-import { IMAGE_SIZE } from "./flat";
 import { Texture } from "three";
+import { roundedGeometry } from "./flat";
 
 export function Image({ position }: { position: [number, number, number] }) {
   const gridPos = useMemo(() => {
@@ -14,12 +13,6 @@ export function Image({ position }: { position: [number, number, number] }) {
   }, [position]);
 
   const data = usePositionCache((state) => state.getPositionData(gridPos));
-
-  // Create rounded plane geometry
-  const roundedGeometry = useMemo(() => {
-    const radius = 4;
-    return new geometry.RoundedPlaneGeometry(IMAGE_SIZE, IMAGE_SIZE, radius, 5);
-  }, []);
 
   if (!data?.texture) {
     return (

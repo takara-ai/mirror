@@ -1,16 +1,15 @@
 "use client";
 
 import { usePositionCache } from "@/lib/store";
-import { CameraControls, Environment, Fisheye } from "@react-three/drei";
+import { Environment, Fisheye } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useMotionValue, useSpring } from "motion/react";
-import { useEffect, useState } from "react";
-import { View3D } from "./components/3d";
+import { useEffect } from "react";
 import { Flat } from "./components/flat";
 import { FlatCameraControls } from "./components/flat-camera-controls";
 import { Search } from "./components/search";
-import { Image } from "./components/image";
-import { gridPositionToWorldPosition } from "@/lib/position";
+import { Perf } from "r3f-perf";
+import { useSearchParams } from "next/navigation";
 
 export type SearchResult = {
   id: string;
@@ -54,6 +53,9 @@ export default function Home() {
     }
   }, [currentEmptySpace]);
 
+  const params = useSearchParams();
+  const showDebug = params.get("debug") === "true";
+
   return (
     <div className="w-full h-screen relative">
       <Canvas
@@ -68,8 +70,9 @@ export default function Home() {
             xSpring={xSpring}
             ySpring={ySpring}
           />
-          <Environment background={true} files={"/space.hdr"} />
         </Fisheye>
+
+        {showDebug && <Perf position="top-left" />}
       </Canvas>
       <Search xMotionValue={xMotionValue} yMotionValue={yMotionValue} />
     </div>

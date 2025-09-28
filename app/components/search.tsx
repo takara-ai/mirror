@@ -64,10 +64,12 @@ export function Search({
         id="cool-textarea"
         className="group animate-bg-slide relative flex h-full w-full max-w-md rounded-2xl bg-[url(/accent-texture.webp)] bg-cover"
       >
-        <span className="text-foreground absolute w-fit mx-auto -top-16 right-0 left-0 text-center font-mono text-sm bg-white/60 rounded-full px-4 py-2 backdrop-blur-sm flex items-center gap-2">
-          {lastSubmit}{" "}
-          {isLoading && <Loader2 className="size-4 animate-spin" />}
-        </span>
+        {(lastSubmit || isLoading) && (
+          <span className="text-foreground absolute w-fit mx-auto -top-16 right-0 left-0 text-center font-mono text-sm bg-white/60 rounded-full px-4 py-2 backdrop-blur-sm flex items-center gap-2">
+            {lastSubmit}{" "}
+            {isLoading && <Loader2 className="size-4 animate-spin" />}
+          </span>
+        )}
         <Textarea
           placeholder="Search for images..."
           autoFocus

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "Mirror",
   description: "A visual search and discovery application",
   icons: {
-    icon: '/icon.svg',
+    icon: "/icon.svg",
   },
 };
 
@@ -28,9 +28,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="p-0">
-    
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[url('/space-bg.jpg')] bg-cover bg-center`}
       >
         <Providers>
           {children}

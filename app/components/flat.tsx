@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import { Group } from "three";
 import { Image } from "./image";
+import { geometry } from "maath";
 
 // Grid configuration
 export const IMAGE_SIZE = 40; // Size of each square image
@@ -13,6 +14,13 @@ export const CELL_SIZE = IMAGE_SIZE + GAP; // Total space per cell (image + gap)
 const VIEWPORT_MARGIN = 50; // Extra margin around viewport
 const BORDER_PADDING = 10; // Extra images beyond viewport to prevent edge transitions
 const VERTICAL_OFFSET = 0; // Vertical offset between columns
+
+export const roundedGeometry = new geometry.RoundedPlaneGeometry(
+  IMAGE_SIZE,
+  IMAGE_SIZE,
+  4, // radius
+  5 // segments
+);
 
 export function Flat() {
   const { camera } = useThree();
