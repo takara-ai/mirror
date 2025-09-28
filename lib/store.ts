@@ -30,6 +30,8 @@ type PositionCacheState = {
   cameraPosition: Position2D;
   isLoading: boolean;
   selectedItem: SearchResult | undefined;
+  isDragging: boolean;
+  setIsDragging: (isDragging: boolean) => void;
   setSelectedItem: (item: SearchResult | undefined) => void;
   setPositionData: (position: Position2D, data: SearchResult) => void;
   getPositionData: (position: Position2D) => SearchResult | undefined;
@@ -63,6 +65,14 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
   cameraPosition: { x: 0, y: 0 },
   isLoading: false,
   selectedItem: undefined,
+  isDragging: false,
+  setIsDragging: (isDragging: boolean) => {
+    if (!isDragging) {
+      set({ selectedItem: undefined, isDragging });
+    } else {
+      set({ isDragging });
+    }
+  },
   setSelectedItem: (item: SearchResult | undefined) => {
     set({ selectedItem: item });
   },

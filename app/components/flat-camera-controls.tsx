@@ -29,7 +29,8 @@ export function FlatCameraControls({
     (state) => state.setCameraPosition
   );
   const { camera, gl } = useThree();
-  const [isDragging, setIsDragging] = useState(false);
+  const setIsDragging = usePositionCache((state) => state.setIsDragging);
+  const isDragging = usePositionCache((state) => state.isDragging);
   const [lastMouse, setLastMouse] = useState({ x: 0, y: 0 });
   const [lastTouch, setLastTouch] = useState({ x: 0, y: 0 });
 

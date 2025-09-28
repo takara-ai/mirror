@@ -14,7 +14,9 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 export function Sheet() {
-  const selected = usePositionCache((state) => state.selectedItem);
+  const selected = usePositionCache((state) =>
+    state.isDragging ? undefined : state.selectedItem
+  );
 
   return (
     <UISheet
