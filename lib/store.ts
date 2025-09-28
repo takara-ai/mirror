@@ -1,7 +1,6 @@
-import { create } from "zustand";
-import { gridPositionToWorldPosition } from "./position";
-import { Texture, TextureLoader } from "three";
 import { toast } from "sonner";
+import { Texture, TextureLoader } from "three";
+import { create } from "zustand";
 
 const textureLoader = new TextureLoader();
 const LIMIT = 100;
@@ -211,8 +210,6 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           x: position.x + direction.x * 8,
           y: position.y + direction.y * 8,
         });
-
-        const testKey = positionToKey(testPosition);
 
         // Check if position and its neighbors are empty
         let allEmpty = true;

@@ -1,17 +1,16 @@
 "use client";
 
 import { usePositionCache } from "@/lib/store";
-import { Environment, Fisheye } from "@react-three/drei";
+import { Fisheye } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useMotionValue, useSpring } from "motion/react";
+import { useSearchParams } from "next/navigation";
+import { Perf } from "r3f-perf";
 import { useEffect } from "react";
 import { Flat } from "./components/flat";
 import { FlatCameraControls } from "./components/flat-camera-controls";
 import { Search } from "./components/search";
-import { Perf } from "r3f-perf";
-import { useSearchParams } from "next/navigation";
 import { Sheet } from "./components/sheet";
-import { Bloom, EffectComposer } from "@react-three/postprocessing";
 
 export type SearchResult = {
   id: string;

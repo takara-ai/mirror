@@ -2,10 +2,9 @@
 
 import { usePositionCache } from "@/lib/store";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
-import { Group } from "three";
-import { Image } from "./image";
 import { geometry } from "maath";
+import { useEffect, useState } from "react";
+import { Image } from "./image";
 
 // Grid configuration
 export const IMAGE_SIZE = 40; // Size of each square image
