@@ -8,13 +8,7 @@ import { useMemo } from "react";
 import { IMAGE_SIZE } from "./flat";
 import { Texture } from "three";
 
-export function Image({
-  position,
-  doTransition,
-}: {
-  position: [number, number, number];
-  doTransition: boolean;
-}) {
+export function Image({ position }: { position: [number, number, number] }) {
   const gridPos = useMemo(() => {
     return worldPositionToGridPosition(position[0], position[1]);
   }, [position]);
@@ -23,9 +17,9 @@ export function Image({
 
   // Create rounded plane geometry
   const roundedGeometry = useMemo(() => {
-    const radius = doTransition ? IMAGE_SIZE / 2 : 6;
+    const radius = 4;
     return new geometry.RoundedPlaneGeometry(IMAGE_SIZE, IMAGE_SIZE, radius, 5);
-  }, [doTransition]);
+  }, []);
 
   if (!data?.texture) {
     return (

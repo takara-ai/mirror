@@ -124,3 +124,32 @@
   @apply fixed top-0 left-0 w-full h-full pointer-events-none z-10;
   box-shadow: 0 0 300px rgba(0, 0, 0, 1) inset;
 }
+
+@utility animate-bg-slide {
+  background-size: 200% 200% !important;
+  animation: bg-slide 20s linear infinite;
+}
+
+@keyframes bg-slide {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@utility animate-burst {
+  animation: burst 1s ease-out forwards;
+}
+
+@keyframes burst {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}

@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import { gridPositionToWorldPosition } from "./position";
 import { Texture, TextureLoader } from "three";
+import { toast } from "sonner";
 
 const textureLoader = new TextureLoader();
 const LIMIT = 100;
+const THRESHOLD = 0.2;
 
 export type SearchResult = {
   id: string;
@@ -25,6 +27,7 @@ type PositionCacheState = {
   positionCache: Map<string, SearchResult>;
   idToPositionMap: Map<string, Position2D>;
   cameraPosition: Position2D;
+  isLoading: boolean;
   setPositionData: (position: Position2D, data: SearchResult) => void;
   getPositionData: (position: Position2D) => SearchResult | undefined;
   getPositionFromId: (id: string) => Position2D | undefined;
@@ -43,7 +46,8 @@ type PositionCacheState = {
   }: {
     position?: Position2D;
     text?: string;
-  }) => Promise<Position2D | undefined>;
+    moveCamera?: (position: Position2D) => void;
+  }) => Promise<void>;
 };
 
 const positionToKey = (position: Position2D): string => {
@@ -54,6 +58,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
   positionCache: new Map<string, SearchResult>(),
   idToPositionMap: new Map<string, Position2D>(),
   cameraPosition: { x: 0, y: 0 },
+  isLoading: false,
   setCameraPosition: (position: Position2D) => {
     set({ cameraPosition: position });
   },
@@ -162,30 +167,78 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
   getResultForPosition: async ({
     position,
     text,
+    moveCamera,
   }: {
     position?: Position2D;
     text?: string;
+    moveCamera?: (position: Position2D) => void;
   }) => {
+    set({ isLoading: true });
+    let doTresholdFiltering = true;
     const state = get();
     if (!position) {
       position = { ...state.cameraPosition };
-      // Generate random direction in one of 8 directions (N, NE, E, SE, S, SW, W, NW)
+
+      const cache = get().positionCache;
       const directions = [
-        [0, 1], // N
-        [1, 1], // NE
-        [1, 0], // E
-        [1, -1], // SE
-        [0, -1], // S
-        [-1, -1], // SW
-        [-1, 0], // W
-        [-1, 1], // NW
+        { x: 1, y: 0 }, // right
+        { x: -1, y: 0 }, // left
+        { x: 0, y: 1 }, // up
+        { x: 0, y: -1 }, // down
+        { x: 1, y: 1 }, // up-right
+        { x: -1, y: 1 }, // up-left
+        { x: 1, y: -1 }, // down-right
+        { x: -1, y: -1 }, // down-left
       ];
-      const direction = directions[Math.floor(Math.random() * 8)];
-      const distance = Math.random() * 10 + 10; // Random distance between 10 and 20
-      position = roundPosition({
-        x: position.x + direction[0] * distance,
-        y: position.y + direction[1] * distance,
-      });
+
+      let foundPosition = false;
+      let attempts = 0;
+      const maxAttempts = 100;
+
+      while (!foundPosition && attempts < maxAttempts) {
+        // Pick a random direction
+        const direction =
+          directions[Math.floor(Math.random() * directions.length)];
+
+        // Move 8 steps in that direction
+        const testPosition = roundPosition({
+          x: position.x + direction.x * 8,
+          y: position.y + direction.y * 8,
+        });
+
+        const testKey = positionToKey(testPosition);
+
+        // Check if position and its neighbors are empty
+        let allEmpty = true;
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            const neighborPos = roundPosition({
+              x: testPosition.x + dx,
+              y: testPosition.y + dy,
+            });
+            const neighborKey = positionToKey(neighborPos);
+
+            if (cache.has(neighborKey)) {
+              allEmpty = false;
+              break;
+            }
+          }
+          if (!allEmpty) break;
+        }
+
+        if (allEmpty) {
+          position = testPosition;
+          foundPosition = true;
+        }
+
+        attempts++;
+      }
+
+      if (!foundPosition) {
+        toast.error("No empty space found");
+        set({ isLoading: false });
+        return;
+      }
     }
     const existingData = state.getPositionData(position);
     const nearestData = state.getNearestAvailablePosition(position);
@@ -203,6 +256,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           body: JSON.stringify({
             image_url: existingData.image_url,
             top_k: LIMIT,
+            threshold: THRESHOLD,
           }),
         });
       } else if (text) {
@@ -211,7 +265,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: text, top_k: 50 }),
+          body: JSON.stringify({ text: text, top_k: 50, threshold: THRESHOLD }),
         });
       } else if (nearestData) {
         response = await fetch("/api/search", {
@@ -222,6 +276,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           body: JSON.stringify({
             image_url: nearestData.image_url,
             top_k: LIMIT,
+            threshold: THRESHOLD,
           }),
         });
       } else {
@@ -233,15 +288,17 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           body: JSON.stringify({
             text: Math.random().toString(36).substring(2, 15),
             top_k: LIMIT,
+            threshold: THRESHOLD,
           }),
         });
+        doTresholdFiltering = false;
       }
       if (!response) {
         alert("No response from API");
         return undefined;
       }
 
-      const data = (await response.json()) as {
+      const rawData = (await response.json()) as {
         results: {
           id: string;
           image_id: string;
@@ -255,28 +312,57 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
         query_image_url_used: boolean;
         query_text_used: boolean;
       };
-
-      // Store results in nearby empty positions
-      const emptyPositions = state.getNClosestEmptyPositionsAt(
-        position,
-        data.results.length
+      const data = rawData.results.filter((result) =>
+        doTresholdFiltering ? result.score > THRESHOLD : true
       );
-      console.log("emptyPositions", emptyPositions);
 
-      for (let i = 0; i < emptyPositions.length; i++) {
-        const emptyPosition = emptyPositions[i];
-        const resultWithTexture = {
-          ...data.results[i],
-          texture: await textureLoader.loadAsync(data.results[i].image_url),
-        };
-        state.setPositionData(emptyPosition, resultWithTexture);
+      if (data.length === 0 && text) {
+        toast.error(`No results found for "${text}"`);
+        return;
       }
 
-      // Return the data for the requested position if available
-      return gridPositionToWorldPosition(position.x, position.y);
+      const firstResult = data[0];
+      if (state.idToPositionMap.has(firstResult.id)) {
+        const position = state.idToPositionMap.get(firstResult.id)!;
+        moveCamera?.(position);
+
+        const emptyPositions = state.getNClosestEmptyPositionsAt(
+          position,
+          data.length - 1
+        );
+        await Promise.all(
+          emptyPositions.map(async (emptyPosition, i) => {
+            const resultWithTexture = {
+              ...data[i + 1],
+              texture: await textureLoader.loadAsync(data[i + 1].image_url),
+            };
+            state.setPositionData(emptyPosition, resultWithTexture);
+          })
+        );
+      } else {
+        // Store results in nearby empty positions
+        const emptyPositions = state.getNClosestEmptyPositionsAt(
+          position,
+          data.length
+        );
+
+        if (emptyPositions.length > 0) {
+          moveCamera?.(emptyPositions[0]);
+        }
+        await Promise.all(
+          emptyPositions.map(async (emptyPosition, i) => {
+            const resultWithTexture = {
+              ...data[i],
+              texture: await textureLoader.loadAsync(data[i].image_url),
+            };
+            state.setPositionData(emptyPosition, resultWithTexture);
+          })
+        );
+      }
     } catch (error) {
       console.error("Failed to fetch search results:", error);
-      return undefined;
+    } finally {
+      set({ isLoading: false });
     }
   },
 }));

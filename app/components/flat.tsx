@@ -14,7 +14,7 @@ const VIEWPORT_MARGIN = 50; // Extra margin around viewport
 const BORDER_PADDING = 10; // Extra images beyond viewport to prevent edge transitions
 const VERTICAL_OFFSET = 0; // Vertical offset between columns
 
-export function Flat({ doTransition }: { doTransition: boolean }) {
+export function Flat() {
   const { camera } = useThree();
   const [initialized, setInitialized] = useState(false);
   const [gridPositions, setGridPositions] = useState<
@@ -97,11 +97,7 @@ export function Flat({ doTransition }: { doTransition: boolean }) {
   return (
     <group>
       {gridPositions.map((gridPos) => (
-        <Image
-          key={gridPos.id}
-          position={gridPos.position}
-          doTransition={doTransition}
-        />
+        <Image key={gridPos.id} position={gridPos.position} />
       ))}
     </group>
   );

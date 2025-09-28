@@ -22,9 +22,6 @@ export type SearchResult = {
 };
 
 export default function Home() {
-  const [mode, setMode] = useState<"flat" | "3d">("flat");
-  const [targetMode, setTargetMode] = useState<"flat" | "3d">("flat");
-
   // Camera motion values for smooth transitions
   const xMotionValue = useMotionValue(0);
   const yMotionValue = useMotionValue(0);
@@ -41,9 +38,21 @@ export default function Home() {
     mass: 0.5,
   });
 
+  const currentEmptySpace = usePositionCache((state) => {
+    const data = state.getPositionData(state.cameraPosition);
+    if (!data) {
+      return state.cameraPosition;
+    }
+    return null;
+  });
+
   useEffect(() => {
-    setMode(targetMode);
-  }, [targetMode]);
+    if (currentEmptySpace && !usePositionCache.getState().isLoading) {
+      usePositionCache.getState().getResultForPosition({
+        position: currentEmptySpace,
+      });
+    }
+  }, [currentEmptySpace]);
 
   return (
     <div className="w-full h-screen relative">
@@ -52,7 +61,7 @@ export default function Home() {
       >
         <Fisheye>
           <ambientLight intensity={0.8} />
-          <Flat doTransition={targetMode === "3d"} />
+          <Flat />
           <FlatCameraControls
             xMotionValue={xMotionValue}
             yMotionValue={yMotionValue}
