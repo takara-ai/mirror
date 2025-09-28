@@ -30,7 +30,8 @@ Uploads an image file.
 **Response:**
 ```json
 {
-  "result": "object"
+  "url": "string",
+  "pathname": "string"
 }
 ```
 
