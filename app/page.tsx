@@ -11,6 +11,9 @@ import { Flat } from "./components/flat";
 import { FlatCameraControls } from "./components/flat-camera-controls";
 import { Search } from "./components/search";
 import { Sheet } from "./components/sheet";
+import { buttonVariants } from "./components/ui/button";
+import { GithubIcon } from "./components/github-icon";
+import Link from "next/link";
 
 export type SearchResult = {
   id: string;
@@ -75,6 +78,15 @@ export default function Home() {
       </Canvas>
       <Sheet />
       <Search xMotionValue={xMotionValue} yMotionValue={yMotionValue} />
+      <Link
+        className={buttonVariants({
+          className: "fixed top-4 left-4 z-30",
+        })}
+        href="https://github.com/takara-ai/mirror"
+      >
+        <GithubIcon className="size-5" />
+        Github
+      </Link>
     </div>
   );
 }
