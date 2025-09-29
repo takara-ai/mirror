@@ -1,15 +1,13 @@
 "use client";
 
-import { Button, buttonVariants } from "@/app/components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
 import { gridPositionToWorldPosition } from "@/lib/position";
 import { usePositionCache } from "@/lib/store";
-import { MotionValue } from "motion/react";
-import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Loader2, Plus, ScanSearch } from "lucide-react";
-import { Input } from "./ui/input";
-import { useMutation } from "@tanstack/react-query";
+import { Loader2, ScanSearch } from "lucide-react";
+import { MotionValue } from "motion/react";
+import { useCallback, useState } from "react";
 
 export function Search({
   xMotionValue,
@@ -24,25 +22,6 @@ export function Search({
   const [burstingTimeout, setBurstingTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
-  const uploadFile = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to upload file");
-      }
-
-      const result = await response.json();
-      console.log(result);
-      return result;
-    },
-  });
 
   const submit = useCallback(async () => {
     if (!query) return;
@@ -107,28 +86,6 @@ export function Search({
           }}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-        />
-        <label
-          className={buttonVariants({
-            variant: "secondary",
-            size: "icon",
-            className:
-              "pointer-events-auto absolute right-12 bottom-2 ml-auto !size-8 !rounded-lg transition-all duration-75 peer-focus-within:-translate-y-2",
-          })}
-          htmlFor="file-input"
-        >
-          <Plus className="size-5" />
-        </label>
-        <Input
-          type="file"
-          className="hidden"
-          id="file-input"
-          accept="image/*"
-          multiple={false}
-          onChange={(e) => {
-            uploadFile.mutate(e.target.files?.[0] as File);
-            e.target.value = "";
-          }}
         />
         <Button
           className={cn(
