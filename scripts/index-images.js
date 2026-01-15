@@ -21,6 +21,7 @@ import { join, extname, basename } from 'path';
 import { config } from 'dotenv';
 import weaviate from 'weaviate-client';
 import sharp from 'sharp';
+import { randomUUID } from 'crypto';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
@@ -28,7 +29,7 @@ config({ path: '.env.local' });
 // Configuration
 const DATA_DIR = join(process.cwd(), 'data');
 const SUPPORTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
-const BATCH_SIZE = 10; // Process images in batches
+const BATCH_SIZE = 50; // Process images in batches
 
 // Validate environment variables
 const requiredEnvVars = ['BLOB_READ_WRITE_TOKEN', 'WEAVIATE_HTTP', 'WEAVIATE_API_KEY'];
@@ -97,7 +98,7 @@ async function getImageMetadata(imagePath) {
       format: metadata.format,
     };
   } catch (error) {
-    console.warn(`⚠️  Could not read metadata for ${imagePath}:`, error.message);
+    console.warn(`Could not read metadata for ${imagePath}:`, error.message);
     return { width: 0, height: 0, format: 'unknown' };
   }
 }
@@ -114,19 +115,19 @@ async function uploadToBlob(imagePath) {
       addRandomSuffix: true, // Prevent overwrites and make URLs unguessable
     });
 
-    console.log(`✅ Uploaded: ${blob.pathname}`);
+    console.log(`Uploaded: ${blob.pathname}`);
     return blob;
   } catch (error) {
-    console.error(`❌ Failed to upload ${imagePath}:`, error.message);
+    console.error(`Failed to upload ${imagePath}:`, error.message);
     throw error;
   }
 }
 
 async function getImageEmbedding(imageUrl) {
   try {
-    console.log(`🧠 Getting embedding for ${imageUrl}...`);
+    console.log(`Getting embedding for ${imageUrl}...`);
 
-    const response = await fetch('http://localhost:3000/api/embed', {
+    const response = await fetch('https://mirror-azure.vercel.app/api/embed', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -153,24 +154,24 @@ async function getImageEmbedding(imageUrl) {
       throw new Error('No image embedding in response');
     }
 
-    console.log(`✅ Got embedding (${result.image_embedding.length} dimensions)`);
+    console.log(`Got embedding (${result.image_embedding.length} dimensions)`);
     return result.image_embedding;
   } catch (error) {
-    console.error(`❌ Failed to get embedding for ${imageUrl}:`, error.message);
+    console.error(`Failed to get embedding for ${imageUrl}:`, error.message);
     throw error;
   }
 }
 
 async function storeInWeaviate(imageData) {
   try {
-    const { id, blobUrl, width, height, vector } = imageData;
+    const { id, blobUrl, width, height, vector, filename } = imageData;
 
     console.log(`Storing in Weaviate: ${id}...`);
 
     const imageCollection = weaviateClient.collections.get('Image');
     const result = await imageCollection.data.insert({
       properties: {
-        image_id: id,
+        filename: filename,
         image_url: blobUrl,
         width: width,
         height: height,
@@ -178,17 +179,17 @@ async function storeInWeaviate(imageData) {
       vectors: vector,
     });
 
-    console.log(`✅ Stored in Weaviate: ${id}`);
+    console.log(`Stored in Weaviate: ${id}`);
     return result;
   } catch (error) {
-    console.error(`❌ Failed to store in Weaviate:`, error.message);
+    console.error(`Failed to store in Weaviate:`, error.message);
     throw error;
   }
 }
 
 async function processImage(imagePath) {
   const filename = basename(imagePath);
-  const id = filename.replace(extname(filename), ''); // Remove extension for ID
+  const id = randomUUID();
 
   try {
     // Get image metadata
@@ -205,6 +206,7 @@ async function processImage(imagePath) {
     // Store in Weaviate
     await storeInWeaviate({
       id,
+      filename,
       blobUrl,
       width: metadata.width,
       height: metadata.height,
@@ -213,7 +215,7 @@ async function processImage(imagePath) {
 
     return { success: true, id, filename };
   } catch (error) {
-    console.error(`❌ Failed to process ${filename}:`, error.message);
+    console.error(`Failed to process ${filename}:`, error.message);
     return { success: false, id, filename, error: error.message };
   }
 }
@@ -229,9 +231,9 @@ async function ensureWeaviateSchema() {
         description: 'Image collection for vector search',
         properties: [
           {
-            name: 'image_id',
+            name: 'filename',
             dataType: 'text',
-            description: 'Unique identifier for the image',
+            description: 'Original filename of the image',
           },
           {
             name: 'image_url',
@@ -252,16 +254,16 @@ async function ensureWeaviateSchema() {
         vectorizers: weaviate.configure.vectorizer.none(), // We'll provide our own vectors
       });
 
-      console.log('✅ Created Image collection in Weaviate');
+      console.log('Created Image collection in Weaviate');
     } catch (schemaError) {
       if (schemaError.message.includes('already exists') || schemaError.message.includes('duplicate')) {
-        console.log('✅ Image collection already exists in Weaviate');
+        console.log('Image collection already exists in Weaviate');
       } else {
         throw schemaError;
       }
     }
   } catch (error) {
-    console.error('❌ Failed to ensure Weaviate schema:', error.message);
+    console.error('Failed to ensure Weaviate schema:', error.message);
     throw error;
   }
 }
@@ -301,22 +303,19 @@ async function main() {
         if (result.status === 'fulfilled') {
           if (result.value.success) {
             results.successful++;
-            console.log(`✅ ${result.value.filename} (${result.value.id})`);
+            console.log(`${result.value.filename} (${result.value.id})`);
           } else {
             results.failed++;
             results.errors.push(result.value);
-            console.log(`❌ ${result.value.filename}: ${result.value.error}`);
+            console.log(`${result.value.filename}: ${result.value.error}`);
           }
         } else {
           results.failed++;
-          console.log(`❌ Batch processing failed: ${result.reason}`);
+          console.log(`Batch processing failed: ${result.reason}`);
         }
       }
 
-      // Small delay between batches to avoid overwhelming services
-      if (i + BATCH_SIZE < imageFiles.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      // No delay between batches - serverless backend can handle concurrency
     }
 
     // Final summary
