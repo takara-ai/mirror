@@ -3,9 +3,48 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { Turbopuffer } from "@turbopuffer/turbopuffer";
-import { embedImage, embedText } from "@/app/api/embed/embed";
 
 let tpufClient: Turbopuffer | null = null;
+
+// Use embed API over HTTP so the search serverless function never loads transformers (no libonnxruntime in this bundle)
+function getEmbedBaseUrl(): string {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return process.env.NEXTAUTH_URL || "http://localhost:3000";
+}
+
+async function getImageEmbedding(imageUrl: string): Promise<number[]> {
+  const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image_url: imageUrl }),
+  });
+  if (!res.ok) {
+    throw new Error(`Embed failed: ${res.statusText}`);
+  }
+  const data = (await res.json()) as { image_embedding?: number[] };
+  if (!data.image_embedding) {
+    throw new Error("No image_embedding in response");
+  }
+  return data.image_embedding;
+}
+
+async function getTextEmbedding(text: string): Promise<number[]> {
+  const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    throw new Error(`Embed failed: ${res.statusText}`);
+  }
+  const data = (await res.json()) as { text_embedding?: number[] };
+  if (!data.text_embedding) {
+    throw new Error("No text_embedding in response");
+  }
+  return data.text_embedding;
+}
 
 function getTurbopufferClient(): Turbopuffer {
   if (!tpufClient) {
@@ -62,9 +101,9 @@ export async function POST(req: Request) {
 
     if (image_url && !vector) {
       try {
-        searchVector = await embedImage(image_url);
+        searchVector = await getImageEmbedding(image_url);
       } catch (err) {
-        console.error("[search] embedImage failed:", err);
+        console.error("[search] getImageEmbedding failed:", err);
         return new Response(
           JSON.stringify({
             error: "Failed to process image URL for embedding.",
@@ -79,9 +118,9 @@ export async function POST(req: Request) {
 
     if (text && !vector && !image_url) {
       try {
-        searchVector = await embedText(text);
+        searchVector = await getTextEmbedding(text);
       } catch (err) {
-        console.error("[search] embedText failed:", err);
+        console.error("[search] getTextEmbedding failed:", err);
         return new Response(
           JSON.stringify({
             error: "Failed to process text for embedding.",
