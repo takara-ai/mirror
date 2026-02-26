@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { Texture, TextureLoader } from "three";
 import { create } from "zustand";
+import { getOptimizedImageUrl } from "./next-image-url";
 import { loadTextureWithAspectRatio } from "./texture";
 import { IMAGE_SIZE } from "@/app/components/flat";
 
@@ -371,7 +372,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
               ...data[i + 1],
               texture: await loadTextureWithAspectRatio(
                 textureLoader,
-                data[i + 1].image_url,
+                getOptimizedImageUrl(data[i + 1].image_url, IMAGE_SIZE * 2),
                 IMAGE_SIZE,
                 IMAGE_SIZE
               ),
@@ -395,7 +396,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
               ...data[i],
               texture: await loadTextureWithAspectRatio(
                 textureLoader,
-                data[i].image_url,
+                getOptimizedImageUrl(data[i].image_url, IMAGE_SIZE * 2),
                 IMAGE_SIZE,
                 IMAGE_SIZE
               ),

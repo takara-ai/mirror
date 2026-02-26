@@ -2,6 +2,7 @@
 
 import { usePositionCache } from "@/lib/store";
 import { useEffect, useState } from "react";
+import NextImage from "next/image";
 import {
   SheetContent,
   SheetDescription,
@@ -33,10 +34,12 @@ export function Sheet() {
         <div className="p-6 pt-0">
           {selected && (
             <div className="space-y-4">
-              <div className="w-full">
-                <img
+              <div className="w-full relative">
+                <NextImage
                   src={selected.image_url}
                   alt="Selected image"
+                  width={selected.width}
+                  height={selected.height}
                   className="w-full h-auto rounded-lg"
                 />
               </div>
