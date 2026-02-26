@@ -6,18 +6,44 @@ import { Turbopuffer } from "@turbopuffer/turbopuffer";
 
 let tpufClient: Turbopuffer | null = null;
 
+const PRODUCTION_APP_URL = "https://mirror-azure.vercel.app";
+
 // Use embed API over HTTP so the search serverless function never loads transformers (no libonnxruntime in this bundle)
 function getEmbedBaseUrl(): string {
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL;
+  }
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return process.env.NEXTAUTH_URL || "http://localhost:3000";
+  if (process.env.NODE_ENV === "production") {
+    return PRODUCTION_APP_URL;
+  }
+  return "http://localhost:3000";
 }
 
-async function getImageEmbedding(imageUrl: string): Promise<number[]> {
+function buildEmbedHeaders(incomingReq: Request): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const cookie = incomingReq.headers.get("cookie");
+  if (cookie) {
+    headers["cookie"] = cookie;
+  }
+  const auth = incomingReq.headers.get("authorization");
+  if (auth) {
+    headers["authorization"] = auth;
+  }
+  return headers;
+}
+
+async function getImageEmbedding(
+  imageUrl: string,
+  incomingReq: Request
+): Promise<number[]> {
   const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildEmbedHeaders(incomingReq),
     body: JSON.stringify({ image_url: imageUrl }),
   });
   if (!res.ok) {
@@ -30,10 +56,13 @@ async function getImageEmbedding(imageUrl: string): Promise<number[]> {
   return data.image_embedding;
 }
 
-async function getTextEmbedding(text: string): Promise<number[]> {
+async function getTextEmbedding(
+  text: string,
+  incomingReq: Request
+): Promise<number[]> {
   const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildEmbedHeaders(incomingReq),
     body: JSON.stringify({ text }),
   });
   if (!res.ok) {
@@ -101,7 +130,7 @@ export async function POST(req: Request) {
 
     if (image_url && !vector) {
       try {
-        searchVector = await getImageEmbedding(image_url);
+        searchVector = await getImageEmbedding(image_url, req);
       } catch (err) {
         console.error("[search] getImageEmbedding failed:", err);
         return new Response(
@@ -118,7 +147,7 @@ export async function POST(req: Request) {
 
     if (text && !vector && !image_url) {
       try {
-        searchVector = await getTextEmbedding(text);
+        searchVector = await getTextEmbedding(text, req);
       } catch (err) {
         console.error("[search] getTextEmbedding failed:", err);
         return new Response(
