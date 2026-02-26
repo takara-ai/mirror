@@ -6,19 +6,18 @@ import { Turbopuffer } from "@turbopuffer/turbopuffer";
 
 let tpufClient: Turbopuffer | null = null;
 
-const PRODUCTION_APP_URL = "https://mirror-azure.vercel.app";
+const EMBED_API_URL =
+  "https://mirror-azure.vercel.app/api/embed";
 
-function getEmbedBaseUrl(): string {
-  if (process.env.NEXTAUTH_URL) {
-    return process.env.NEXTAUTH_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
+function getEmbedUrl(): string {
   if (process.env.NODE_ENV === "production") {
-    return PRODUCTION_APP_URL;
+    return EMBED_API_URL;
   }
-  return "http://localhost:3000";
+  const base =
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    "http://localhost:3000";
+  return `${base}/api/embed`;
 }
 
 function buildEmbedHeaders(incomingReq: Request): HeadersInit {
@@ -40,7 +39,7 @@ async function getImageEmbedding(
   imageUrl: string,
   incomingReq: Request
 ): Promise<number[]> {
-  const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
+  const res = await fetch(getEmbedUrl(), {
     method: "POST",
     headers: buildEmbedHeaders(incomingReq),
     body: JSON.stringify({ image_url: imageUrl }),
@@ -59,7 +58,7 @@ async function getTextEmbedding(
   text: string,
   incomingReq: Request
 ): Promise<number[]> {
-  const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
+  const res = await fetch(getEmbedUrl(), {
     method: "POST",
     headers: buildEmbedHeaders(incomingReq),
     body: JSON.stringify({ text }),
