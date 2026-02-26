@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./components/providers";
 import { Suspense } from "react";
+import { Providers } from "./components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Mirror - Multimodal Search & Discovery",
   description:
-    "Mirror is the fastest and most cost effective way to build web apps with multimodal embeddings. Powered by OpenAI CLIP, Weaviate, and Next.js, Mirror enables natural language search over thousands of images with no GPU, no complex deployments, and minimal cost.",
+    "Mirror is the fastest and most cost effective way to build web apps with multimodal embeddings. Powered by OpenAI CLIP, Turbopuffer, and Next.js, Mirror enables natural language search over thousands of images with no GPU, no complex deployments, and minimal cost.",
   icons: {
     icon: "/icon.svg",
   },
@@ -29,14 +29,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="p-0">
+    <html className="p-0" lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[url('/space-bg.jpg')] bg-cover bg-center`}
+        className={`${geistSans.variable} ${geistMono.variable} bg-[url('/space-bg.jpg')] bg-center bg-cover antialiased`}
       >
         <Providers>
           <Suspense
             fallback={
-              <div className="h-dvh w-full bg-black flex items-center justify-center font-light text-white">
+              <div className="flex h-dvh w-full items-center justify-center bg-black font-light text-white">
                 Loading...
               </div>
             }

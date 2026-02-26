@@ -1,19 +1,19 @@
 "use client";
 
-import { usePositionCache } from "@/lib/store";
 import { Fisheye } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useMotionValue, useSpring } from "motion/react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Perf } from "r3f-perf";
 import { useEffect } from "react";
+import { usePositionCache } from "@/lib/store";
 import { Flat } from "./components/flat";
 import { FlatCameraControls } from "./components/flat-camera-controls";
+import { GithubIcon } from "./components/github-icon";
 import { Search } from "./components/search";
 import { Sheet } from "./components/sheet";
 import { buttonVariants } from "./components/ui/button";
-import { GithubIcon } from "./components/github-icon";
-import Link from "next/link";
 
 export type SearchResult = {
   id: string;
@@ -60,17 +60,17 @@ export default function Home() {
   const params = useSearchParams();
   const showDebug = params.get("debug") === "true";
   return (
-    <div className="w-full h-dvh relative">
+    <div className="relative h-dvh w-full">
       <Canvas
-        camera={{ position: [0, 0, 800], fov: 90, near: 0.1, far: 100000 }}
+        camera={{ position: [0, 0, 800], fov: 90, near: 0.1, far: 100_000 }}
       >
         <Fisheye>
           <ambientLight intensity={0.8} />
           <Flat />
           <FlatCameraControls
             xMotionValue={xMotionValue}
-            yMotionValue={yMotionValue}
             xSpring={xSpring}
+            yMotionValue={yMotionValue}
             ySpring={ySpring}
           />
         </Fisheye>

@@ -1,13 +1,13 @@
 "use client";
 
+import { Loader2, ScanSearch } from "lucide-react";
+import type { MotionValue } from "motion/react";
+import { useCallback, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Textarea } from "@/app/components/ui/textarea";
 import { gridPositionToWorldPosition } from "@/lib/position";
 import { usePositionCache } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Loader2, ScanSearch } from "lucide-react";
-import { MotionValue } from "motion/react";
-import { useCallback, useState } from "react";
 
 export function Search({
   xMotionValue,
@@ -24,7 +24,9 @@ export function Search({
   );
 
   const submit = useCallback(async () => {
-    if (!query) return;
+    if (!query) {
+      return;
+    }
 
     setLastSubmit(query);
     setQuery("");
@@ -55,51 +57,49 @@ export function Search({
   const isLoading = usePositionCache((state) => state.isLoading);
 
   return (
-    <div className="fixed bottom-0 left-0 w-full flex items-center justify-center pointer-events-none p-6 z-20">
+    <div className="pointer-events-none fixed bottom-0 left-0 z-20 flex w-full items-center justify-center p-6">
       <form
+        className="group relative flex h-full w-full max-w-md animate-bg-slide rounded-2xl bg-[url(/accent-texture.webp)] bg-cover"
+        id="cool-textarea"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
-        id="cool-textarea"
-        className="group animate-bg-slide relative flex h-full w-full max-w-md rounded-2xl bg-[url(/accent-texture.webp)] bg-cover"
       >
         {(lastSubmit || isLoading) && (
-          <span className="text-foreground absolute w-fit mx-auto -top-16 right-0 left-0 text-center font-mono text-sm bg-white/60 rounded-full px-4 py-2 backdrop-blur-sm flex items-center gap-2">
+          <span className="absolute -top-16 right-0 left-0 mx-auto flex w-fit items-center gap-2 rounded-full bg-white/60 px-4 py-2 text-center font-mono text-foreground text-sm backdrop-blur-sm">
             {lastSubmit}{" "}
             {isLoading && <Loader2 className="size-4 animate-spin" />}
           </span>
         )}
         <Textarea
-          placeholder="Search for images..."
           autoFocus
           className={cn(
-            "peer bg-input min-h-20 max-w-md resize-none rounded-2xl p-3 transition-all duration-75 focus-within:-translate-y-2 focus:ring-0 focus:outline-none focus-visible:ring-0 pointer-events-auto"
+            "peer pointer-events-auto min-h-20 max-w-md resize-none rounded-2xl bg-input p-3 transition-all duration-75 focus-within:-translate-y-2 focus:outline-none focus:ring-0 focus-visible:ring-0"
           )}
+          onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              if (!e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
             }
           }}
+          placeholder="Search for images..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
         />
         <Button
           className={cn(
             "pointer-events-auto absolute right-2 bottom-2 ml-auto size-8 rounded-lg transition-all duration-75 peer-focus-within:-translate-y-2"
           )}
-          variant={"default"}
           size="icon"
           type="submit"
+          variant={"default"}
         >
           <ScanSearch className="size-5" />
         </Button>
         <div
           className={cn(
-            "animate-bg-slide absolute bottom-0 -z-10 h-2/3 w-full rounded-2xl bg-[url(/accent-texture.webp)] bg-cover opacity-0 blur-3xl transition-all peer-focus-within:opacity-100",
+            "absolute bottom-0 -z-10 h-2/3 w-full animate-bg-slide rounded-2xl bg-[url(/accent-texture.webp)] bg-cover opacity-0 blur-3xl transition-all peer-focus-within:opacity-100",
             bursting && "animate-burst"
           )}
         />

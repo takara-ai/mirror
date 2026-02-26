@@ -1,8 +1,8 @@
 import { toast } from "sonner";
-import { Texture, TextureLoader } from "three";
+import { type Texture, TextureLoader } from "three";
 import { create } from "zustand";
-import { loadTextureWithAspectRatio } from "./texture";
 import { IMAGE_SIZE } from "@/app/components/flat";
+import { loadTextureWithAspectRatio } from "./texture";
 
 const textureLoader = new TextureLoader();
 const LIMIT = 100;
@@ -67,10 +67,10 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
   selectedItem: undefined,
   isDragging: false,
   setIsDragging: (isDragging: boolean) => {
-    if (!isDragging) {
-      set({ selectedItem: undefined, isDragging });
-    } else {
+    if (isDragging) {
       set({ isDragging });
+    } else {
+      set({ selectedItem: undefined, isDragging });
     }
   },
   setSelectedItem: (item: SearchResult | undefined) => {
@@ -238,7 +238,9 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
               break;
             }
           }
-          if (!allEmpty) break;
+          if (!allEmpty) {
+            break;
+          }
         }
 
         if (allEmpty) {
@@ -280,7 +282,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: text, top_k: 50, threshold: THRESHOLD }),
+          body: JSON.stringify({ text, top_k: 50, threshold: THRESHOLD }),
         });
       } else if (nearestData) {
         response = await fetch("/api/search", {

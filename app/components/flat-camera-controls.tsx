@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import { type MotionValue, useMotionValue, useSpring } from "motion/react";
+import { useEffect, useState } from "react";
 import { PerspectiveCamera } from "three";
-import { useMotionValue, useSpring, MotionValue } from "motion/react";
-import { usePositionCache } from "@/lib/store";
 import { worldPositionToGridPosition } from "@/lib/position";
+import { usePositionCache } from "@/lib/store";
 
 // Panning sensitivity - adjust these values to change how fast the camera moves
 const MOUSE_PAN_SENSITIVITY = 0.5;
@@ -56,7 +56,9 @@ export function FlatCameraControls({
     };
 
     const handleMouseMove = (event: MouseEvent) => {
-      if (!isDragging) return;
+      if (!isDragging) {
+        return;
+      }
 
       const deltaX = event.clientX - lastMouse.x;
       const deltaY = event.clientY - lastMouse.y;
@@ -93,7 +95,9 @@ export function FlatCameraControls({
 
     const handleTouchMove = (event: TouchEvent) => {
       event.preventDefault();
-      if (!isDragging || event.touches.length !== 1) return;
+      if (!isDragging || event.touches.length !== 1) {
+        return;
+      }
 
       const touch = event.touches[0];
       const deltaX = touch.clientX - lastTouch.x;

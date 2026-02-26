@@ -1,9 +1,9 @@
 "use client";
 
-import { usePositionCache } from "@/lib/store";
 import { useFrame, useThree } from "@react-three/fiber";
 import { geometry } from "maath";
 import { useEffect, useState } from "react";
+import { usePositionCache } from "@/lib/store";
 import { Image } from "./image";
 
 // Grid configuration
@@ -82,7 +82,9 @@ export function Flat() {
 
   // Update grid positions on camera movement
   useFrame(() => {
-    if (!camera) return;
+    if (!camera) {
+      return;
+    }
 
     const cameraPosition = camera.position;
     const newPositions = calculateGridPositions({
@@ -94,7 +96,9 @@ export function Flat() {
   });
 
   useEffect(() => {
-    if (initialized) return;
+    if (initialized) {
+      return;
+    }
     usePositionCache
       .getState()
       .getResultForPosition({ position: { x: 0, y: 0 } });

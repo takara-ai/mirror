@@ -1,17 +1,15 @@
 "use client";
 
+import { Download } from "lucide-react";
+import { toast } from "sonner";
 import { usePositionCache } from "@/lib/store";
-import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
 import {
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   Sheet as UISheet,
 } from "./ui/sheet";
-import { Button, buttonVariants } from "./ui/button";
-import { Download } from "lucide-react";
-import { toast } from "sonner";
 
 export function Sheet() {
   const selected = usePositionCache((state) =>
@@ -20,11 +18,11 @@ export function Sheet() {
 
   return (
     <UISheet
-      open={!!selected}
+      modal={false}
       onOpenChange={() => {
         usePositionCache.getState().setSelectedItem(undefined);
       }}
-      modal={false}
+      open={!!selected}
     >
       <SheetContent>
         <SheetHeader className="pb-0">
@@ -35,9 +33,9 @@ export function Sheet() {
             <div className="space-y-4">
               <div className="w-full">
                 <img
-                  src={selected.image_url}
                   alt="Selected image"
-                  className="w-full h-auto rounded-lg"
+                  className="h-auto w-full rounded-lg"
+                  src={selected.image_url}
                 />
               </div>
               <div className="space-y-2 text-sm">

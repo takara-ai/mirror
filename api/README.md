@@ -63,7 +63,7 @@ Generates a description for an uploaded image.
 
 ## `/api/search` (POST)
 
-Performs vector similarity search using Weaviate.
+Performs vector similarity search using Turbopuffer.
 
 **Request Body:**
 ```json
@@ -104,7 +104,7 @@ Health check endpoint.
 ```json
 {
   "status": "ok",
-  "weaviate_connected": boolean,
+  "vector_store_connected": boolean,
   "message": "string"
 }
 ```

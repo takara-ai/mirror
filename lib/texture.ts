@@ -1,4 +1,4 @@
-import { Texture } from "three";
+import type { Texture } from "three";
 import * as THREE from "three";
 
 /**

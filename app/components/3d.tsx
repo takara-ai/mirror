@@ -1,4 +1,4 @@
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { Bloom, EffectComposer } from "@react-three/postprocessing";
 
 export function View3D() {
   return (
@@ -13,10 +13,10 @@ export function View3D() {
       </group>
       <EffectComposer>
         <Bloom
-          intensity={1.5}
-          luminanceThreshold={0.1}
-          luminanceSmoothing={0.9}
           height={300}
+          intensity={1.5}
+          luminanceSmoothing={0.9}
+          luminanceThreshold={0.1}
         />
       </EffectComposer>
     </>

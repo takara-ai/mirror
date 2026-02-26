@@ -2,7 +2,7 @@
 
 **[Mirror](https://mirror-azure.vercel.app/) is the fastest and most cost effective way to build web apps with multimodal embeddings.**
 
-Backed by OpenAI CLIP, Weaviate and NextJS(Lovable), build the next Pintrest, Instagram or whatever you could imagine with no GPU's, no complex deployments and no drain on your wallet.
+Backed by OpenAI CLIP, Turbopuffer and NextJS(Lovable), build the next Pintrest, Instagram or whatever you could imagine with no GPU's, no complex deployments and no drain on your wallet.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftakara-ai%2Fmirror)
 
@@ -18,13 +18,11 @@ Below is our serverless solution compared to traditional deployments.
 
 ### Prerequisites
 
-This project uses [weaviate](https://weaviate.io/), it's neccessary to make a cloud account and use their database for vector store.
-
-You will then need to add these Environment variables to your vercel account:
+This project uses [Turbopuffer](https://turbopuffer.com/) for the vector store. Create an account and API key in the [dashboard](https://turbopuffer.com/dashboard), then add:
 
 ```
-WEAVIATE_API_KEY="[YOUR API KEY]" # This will need permissions for reading and writing to the index
-WEAVIATE_HTTP="[HOST HTTP URL]" # We don't support GRPC at this time
+TURBOPUFFER_API_KEY="[YOUR API KEY]"
+TURBOPUFFER_REGION="gcp-us-central1"   # optional, see https://turbopuffer.com/docs/regions
 ```
 
 We also use Vercel's Blob store to efficiently store images for use for the browser, go to your vercel project -> storage
@@ -40,7 +38,7 @@ OPENAI_API_KEY="[YOUR KEY]"
 Now run
 
 ```
-pnpm i
+bun install
 ```
 
 ```

@@ -1,12 +1,12 @@
 "use client";
 
+import type { geometry } from "maath";
+import { useSpring } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
+import type { Texture } from "three";
 import { worldPositionToGridPosition } from "@/lib/position";
 import { usePositionCache } from "@/lib/store";
-import { geometry } from "maath";
-import { useEffect, useMemo, useState } from "react";
-import { Texture } from "three";
 import { roundedGeometry } from "./flat";
-import { useSpring } from "motion/react";
 
 const Z_DISTANCE_HOVERED = 10;
 
@@ -19,8 +19,8 @@ export function Image({ position }: { position: [number, number, number] }) {
 
   if (!data?.texture) {
     return (
-      <mesh position={position} geometry={roundedGeometry}>
-        <meshBasicMaterial color="#888888" transparent={true} opacity={0.1} />
+      <mesh geometry={roundedGeometry} position={position}>
+        <meshBasicMaterial color="#888888" opacity={0.1} transparent={true} />
       </mesh>
     );
   }
@@ -94,10 +94,10 @@ function ImageMesh({
 
   return (
     <mesh
-      position={[position[0], position[1], zPosition.get()]}
       geometry={roundedGeometry}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
+      position={[position[0], position[1], zPosition.get()]}
     >
       <meshBasicMaterial map={texture} />
     </mesh>
