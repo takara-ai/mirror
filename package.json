@@ -8,7 +8,10 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "index": "node scripts/index-images.js"
+    "index": "node scripts/index-images.js",
+    "index-picsum": "node scripts/index-picsum.js",
+    "cleanup-index": "node scripts/cleanup-index.js",
+    "deduplicate-by-embedding": "node scripts/deduplicate-by-embedding.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.7.0",

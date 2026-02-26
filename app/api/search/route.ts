@@ -21,8 +21,13 @@ function getEmbedUrl(): string {
 }
 
 function buildEmbedHeaders(incomingReq: Request): HeadersInit {
+  const key = process.env.EMBED_API_KEY;
+  if (!key) {
+    throw new Error("Missing EMBED_API_KEY environment variable");
+  }
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "x-api-key": key,
   };
   const cookie = incomingReq.headers.get("cookie");
   if (cookie) {

@@ -21,20 +21,6 @@ Generates CLIP embeddings for text and/or images.
 }
 ```
 
-## `/api/upload` (POST)
-
-Uploads an image file.
-
-**Request:** FormData with `image` field containing File object.
-
-**Response:**
-```json
-{
-  "url": "string",
-  "pathname": "string"
-}
-```
-
 ## `/api/caption` (POST)
 
 Generates a caption for an uploaded image.

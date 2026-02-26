@@ -51,7 +51,38 @@ type Body = {
   image_base64?: string;   // alternative: base64 without data URL prefix
 };
 
+/** Get image embedding from URL, Blob, or base64. Pass image bytes as Blob to avoid network (e.g. from Buffer: new Blob([buffer], { type: 'image/jpeg' })). */
+export async function embedImage(
+  imageUrl: string,
+  opts?: { base64?: string; blob?: Blob }
+): Promise<number[]> {
+  const { RawImage } = await getTransformers();
+  const { processorPromise, visionModelPromise } = await initializeModels();
+  const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
+
+  let image: any;
+  if (opts?.blob) {
+    image = await RawImage.fromBlob(opts.blob);
+  } else if (opts?.base64) {
+    image = await RawImage.read(`data:image/jpeg;base64,${opts.base64}`);
+  } else {
+    image = await RawImage.read(imageUrl);
+  }
+
+  const image_inputs = await proc(image);
+  const { image_embeds } = await visionModel(image_inputs);
+  return Array.from(image_embeds.data as Float32Array);
+}
+
 export async function POST(req: Request) {
+  const expectedKey = process.env.EMBED_API_KEY;
+  const providedKey = req.headers.get('x-api-key');
+  if (!expectedKey || providedKey !== expectedKey) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
+  }
   try {
     const { text, image_url, image_base64 } = (await req.json()) as Body;
 
@@ -70,22 +101,7 @@ export async function POST(req: Request) {
 
     // Image embedding (optional)
     if (image_url || image_base64) {
-      const { RawImage } = await getTransformers();
-      const [proc, visionModel] = await Promise.all([processorPromise, visionModelPromise]);
-
-      let image: any;
-      if (image_url) {
-        // RawImage.read can accept a URL and will use image-js backend
-        image = await RawImage.read(image_url);
-      } else if (image_base64) {
-        // Create data URL from base64 for RawImage.read
-        const dataUrl = `data:image/jpeg;base64,${image_base64}`;
-        image = await RawImage.read(dataUrl);
-      }
-
-      const image_inputs = await proc(image);
-      const { image_embeds } = await visionModel(image_inputs);
-      out.image_embedding = Array.from(image_embeds.data as Float32Array);
+      out.image_embedding = await embedImage(image_url ?? '', { base64: image_base64 });
     }
 
     if (!out.text_embedding && !out.image_embedding) {
