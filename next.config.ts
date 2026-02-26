@@ -1,14 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["sharp"],
-  // Force transformers to use the web (WASM) build so serverless doesn't need libonnxruntime.so
-  turbopack: {
-    resolveAlias: {
-      "@huggingface/transformers":
-        "./node_modules/@huggingface/transformers/dist/transformers.web.js",
-    },
-  },
+  serverExternalPackages: ["sharp", "onnxruntime-node"],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = [

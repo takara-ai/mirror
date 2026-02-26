@@ -1,10 +1,10 @@
 // Embed lib: CLIP text/image embeddings (in-process). Used by route and by search/upload/scripts.
+// Same approach as main: @xenova/transformers with onnxruntime-node externalized in next.config.
 
-const CACHE_DIR =
+process.env.TRANSFORMERS_CACHE =
   process.env.TRANSFORMERS_CACHE || process.env.HF_HOME || "/tmp/transformers";
 
-type TransformersModule = {
-  env?: { cacheDir?: string };
+let transformersPromise: Promise<{
   AutoProcessor: { from_pretrained: (model: string) => Promise<unknown> };
   AutoTokenizer: { from_pretrained: (model: string) => Promise<unknown> };
   CLIPVisionModelWithProjection: {
@@ -14,20 +14,11 @@ type TransformersModule = {
     from_pretrained: (model: string) => Promise<unknown>;
   };
   RawImage: { read: (url: string) => Promise<unknown> };
-};
+}> | null = null;
 
-let transformersPromise: Promise<TransformersModule> | null = null;
-
-async function getTransformers(): Promise<TransformersModule> {
+async function getTransformers() {
   if (!transformersPromise) {
-    transformersPromise = import("@huggingface/transformers").then(
-      (mod: TransformersModule) => {
-        if (mod.env) {
-          mod.env.cacheDir = CACHE_DIR;
-        }
-        return mod;
-      }
-    );
+    transformersPromise = import("@xenova/transformers");
   }
   return transformersPromise;
 }
@@ -74,14 +65,6 @@ async function initializeModels() {
   };
 }
 
-type TokenizerFn = (
-  text: string[],
-  opts: { padding: boolean; truncation: boolean }
-) => unknown;
-type TextModelFn = (
-  inputs: unknown
-) => Promise<{ text_embeds: { data: Float32Array } }>;
-
 /** Get text embedding vector (in-process, no network). */
 export async function embedText(text: string): Promise<number[]> {
   const { tokenizerPromise, textModelPromise } = await initializeModels();
@@ -89,11 +72,15 @@ export async function embedText(text: string): Promise<number[]> {
     tokenizerPromise,
     textModelPromise,
   ]);
-  const inputs = (tok as TokenizerFn)([text], {
+  const inputs = (tok as (text: string[], opts: object) => unknown)([text], {
     padding: true,
     truncation: true,
   });
-  const { text_embeds } = await (textModel as TextModelFn)(inputs);
+  const { text_embeds } = await (
+    textModel as (inputs: unknown) => Promise<{
+      text_embeds: { data: Float32Array };
+    }>
+  )(inputs);
   return Array.from(text_embeds.data);
 }
 
@@ -115,12 +102,14 @@ export async function embedImage(
   } else {
     image = await RawImage.read(imageUrl);
   }
-  type ProcessorFn = (image: unknown) => Promise<unknown>;
-  type VisionModelFn = (
-    inputs: unknown
-  ) => Promise<{ image_embeds: { data: Float32Array } }>;
-  const image_inputs = await (proc as ProcessorFn)(image);
-  const { image_embeds } = await (visionModel as VisionModelFn)(image_inputs);
+  const image_inputs = await (proc as (image: unknown) => Promise<unknown>)(
+    image
+  );
+  const { image_embeds } = await (
+    visionModel as (inputs: unknown) => Promise<{
+      image_embeds: { data: Float32Array };
+    }>
+  )(image_inputs);
   return Array.from(image_embeds.data);
 }
 
