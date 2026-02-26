@@ -1,6 +1,6 @@
 // api/embed.ts
-const runtime = 'nodejs';          // use Node.js, not Edge
-const dynamic = 'force-dynamic';   // ensure server execution
+export const runtime = 'nodejs';          // use Node.js, not Edge
+export const dynamic = 'force-dynamic';   // ensure server execution
 
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
@@ -74,7 +74,7 @@ export async function embedImage(
   return Array.from(image_embeds.data as Float32Array);
 }
 
-async function POST(req: Request) {
+export async function POST(req: Request) {
   const expectedKey = process.env.EMBED_API_KEY;
   const providedKey = req.headers.get('x-api-key');
   if (!expectedKey || providedKey !== expectedKey) {
