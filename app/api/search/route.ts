@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { Turbopuffer } from "@turbopuffer/turbopuffer";
+import { POST as embedPost } from "@/api/embed";
 
 let tpufClient: Turbopuffer | null = null;
 
@@ -21,48 +22,39 @@ function getTurbopufferClient(): Turbopuffer {
   return tpufClient;
 }
 
-// Get embedding for image URL using the existing embedding endpoint
+// Call embed handler in-process to avoid internal fetch (Vercel can return wrong handler for same-host /api/embed)
 async function getImageEmbedding(imageUrl: string): Promise<number[]> {
-  const baseUrl = process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
-
-  const embedResponse = await fetch(`${baseUrl}/api/embed`, {
+  const req = new Request("http://localhost/api/embed", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_url: imageUrl }),
   });
-
-  if (!embedResponse.ok) {
-    throw new Error(
-      `Failed to get image embedding: ${embedResponse.statusText}`
-    );
+  const res = await embedPost(req);
+  if (!res.ok) {
+    throw new Error(`Failed to get image embedding: ${res.statusText}`);
   }
-
-  const embedResult = await embedResponse.json();
-  return embedResult.image_embedding;
+  const data = (await res.json()) as { image_embedding?: number[] };
+  if (!data.image_embedding) {
+    throw new Error("No image_embedding in response");
+  }
+  return data.image_embedding;
 }
 
-// Get embedding for text using the existing embedding endpoint
 async function getTextEmbedding(text: string): Promise<number[]> {
-  const baseUrl = process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
-
-  const embedResponse = await fetch(`${baseUrl}/api/embed`, {
+  const req = new Request("http://localhost/api/embed", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
   });
-
-  if (!embedResponse.ok) {
-    throw new Error(
-      `Failed to get text embedding: ${embedResponse.statusText}`
-    );
+  const res = await embedPost(req);
+  if (!res.ok) {
+    throw new Error(`Failed to get text embedding: ${res.statusText}`);
   }
-
-  const embedResult = await embedResponse.json();
-  return embedResult.text_embedding;
+  const data = (await res.json()) as { text_embedding?: number[] };
+  if (!data.text_embedding) {
+    throw new Error("No text_embedding in response");
+  }
+  return data.text_embedding;
 }
 
 type SearchBody = {
