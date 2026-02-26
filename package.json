@@ -3,15 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.1.0",
+  "trustedDependencies": [
+    "sharp",
+    "onnxruntime-node",
+    "node",
+    "protobufjs",
+    "skia-canvas",
+    "unrs-resolver"
+  ],
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
+    "dev": "bun --bun next dev --turbopack",
+    "build": "bun --bun next build --turbopack",
+    "start": "bun next start",
     "lint": "eslint",
-    "index": "node scripts/index-images.js",
-    "index-picsum": "node scripts/index-picsum.js",
-    "cleanup-index": "node scripts/cleanup-index.js",
-    "deduplicate-by-embedding": "node scripts/deduplicate-by-embedding.js"
+    "index": "bun scripts/index-images.js",
+    "index-picsum": "bun scripts/index-picsum.js",
+    "cleanup-index": "bun scripts/cleanup-index.js",
+    "deduplicate-by-embedding": "bun scripts/deduplicate-by-embedding.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.7.0",
