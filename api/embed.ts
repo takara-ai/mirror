@@ -4,6 +4,11 @@ export const dynamic = 'force-dynamic';   // ensure server execution
 
 // Optional: cache models in /tmp to reduce cold starts on Vercel
 process.env.TRANSFORMERS_CACHE = process.env.TRANSFORMERS_CACHE || '/tmp/transformers';
+// Hugging Face token: @xenova/transformers reads HF_TOKEN (or HF_ACCESS_TOKEN) when fetching from the Hub.
+// Set HF_TOKEN in your environment (e.g. Vercel env or .env.local) to avoid 401 Unauthorized.
+if (process.env.HUGGING_FACE_HUB_TOKEN && !process.env.HF_TOKEN) {
+  process.env.HF_TOKEN = process.env.HUGGING_FACE_HUB_TOKEN;
+}
 
 // Lazy import and initialization to handle ESM compatibility
 let transformersPromise: Promise<any> | null = null;

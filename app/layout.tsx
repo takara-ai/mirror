@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Mirror - Multimodal Search & Discovery",
   description:
-    "Mirror is the fastest and most cost effective way to build web apps with multimodal embeddings. Powered by OpenAI CLIP, Weaviate, and Next.js, Mirror enables natural language search over thousands of images with no GPU, no complex deployments, and minimal cost.",
+    "Mirror is the fastest and most cost effective way to build web apps with multimodal embeddings. Powered by OpenAI CLIP, Turbopuffer, and Next.js, Mirror enables natural language search over thousands of images with no GPU, no complex deployments, and minimal cost.",
   icons: {
     icon: "/icon.svg",
   },

@@ -49,19 +49,16 @@ async function deduplicateImagesFast() {
     let processedCount = 0;
     const fetchBatchSize = 500;
     let lastId = null;
-
     console.log("Streaming through objects...");
 
     while (true) {
       const queryParams = {
         rank_by: ["id", "asc"],
         top_k: fetchBatchSize,
-        include_attributes: ["image_id"],
+        include_attributes: true,
         vector_encoding: "float",
+        ...(lastId != null && { filters: ["id", "Gt", lastId] }),
       };
-      if (lastId != null) {
-        queryParams.filters = ["id", "Gt", lastId];
-      }
 
       const result = await ns.query(queryParams);
       const rows = result.rows ?? [];
