@@ -3,68 +3,59 @@
 /**
  * Image Indexing Script
  *
- * This script indexes images from the data folder by:
+ * Indexes images from the data folder by:
  * 1. Finding all image files in the data directory
  * 2. Uploading them to Vercel Blob storage
  * 3. Generating embeddings using the local /api/embed endpoint
- * 4. Storing metadata and vectors in Weaviate
+ * 4. Storing metadata and vectors in Turbopuffer
  *
  * Environment variables required:
  * - BLOB_READ_WRITE_TOKEN: Vercel Blob token
- * - WEAVIATE_HTTP: Weaviate host URL (e.g., https://your-project.weaviate.cloud)
- * - WEAVIATE_API_KEY: Weaviate API key
+ * - TURBOPUFFER_API_KEY: Turbopuffer API key (create at https://turbopuffer.com/dashboard)
+ * - TURBOPUFFER_REGION: (optional) e.g. gcp-us-central1
  */
 
-import { put } from '@vercel/blob';
-import { readFileSync, readdirSync, statSync } from 'fs';
-import { join, extname, basename } from 'path';
-import { config } from 'dotenv';
-import weaviate from 'weaviate-client';
-import sharp from 'sharp';
-import { randomUUID } from 'crypto';
+import { Turbopuffer } from "@turbopuffer/turbopuffer";
+import { put } from "@vercel/blob";
+import { readFileSync, readdirSync, statSync } from "fs";
+import { join, extname, basename } from "path";
+import { config } from "dotenv";
+import sharp from "sharp";
+import { randomUUID } from "crypto";
 
-// Load environment variables from .env.local
-config({ path: '.env.local' });
+config({ path: ".env.local" });
 
-// Configuration
-const DATA_DIR = join(process.cwd(), 'data');
-const SUPPORTED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
-const BATCH_SIZE = 50; // Process images in batches
+const DATA_DIR = join(process.cwd(), "data");
+const SUPPORTED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"];
+const BATCH_SIZE = 50;
 
-// Validate environment variables
-const requiredEnvVars = ['BLOB_READ_WRITE_TOKEN', 'WEAVIATE_HTTP', 'WEAVIATE_API_KEY'];
+const requiredEnvVars = ["BLOB_READ_WRITE_TOKEN", "TURBOPUFFER_API_KEY"];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.error(`Error: Missing required environment variable: ${envVar}`);
-    console.error('Please set this in your .env.local file.');
-    console.error('Current environment variables found:');
-    Object.keys(process.env).filter(key => key.includes('BLOB') || key.includes('WEAVIATE')).forEach(key => {
-      console.error(`  ${key}: ${process.env[key] ? '***' : 'undefined'}`);
-    });
+    console.error("Please set this in your .env.local file.");
+    console.error("Current environment variables found:");
+    Object.keys(process.env)
+      .filter(
+        (key) => key.includes("BLOB") || key.includes("TURBOPUFFER")
+      )
+      .forEach((key) => {
+        console.error(`  ${key}: ${process.env[key] ? "***" : "undefined"}`);
+      });
     process.exit(1);
   }
 }
 
-// Initialize clients
-let weaviateClient;
+let tpufClient;
 
-async function initializeClients() {
-  try {
-    // Initialize Weaviate client using connectToWeaviateCloud
-    const weaviateUrl = process.env.WEAVIATE_HTTP.replace('https://', '').replace('http://', '');
-    
-    weaviateClient = await weaviate.connectToWeaviateCloud(
-      weaviateUrl,
-      {
-        authCredentials: new weaviate.ApiKey(process.env.WEAVIATE_API_KEY),
-      }
-    );
-    
-    console.log('Weaviate client initialized');
-  } catch (error) {
-    console.error('Failed to initialize Weaviate client:', error.message);
-    throw error;
+function getTurbopufferClient() {
+  if (!tpufClient) {
+    tpufClient = new Turbopuffer({
+      apiKey: process.env.TURBOPUFFER_API_KEY,
+      region: process.env.TURBOPUFFER_REGION || "gcp-us-central1",
+    });
   }
+  return tpufClient;
 }
 
 function getImageFiles(dir) {
@@ -79,7 +70,10 @@ function getImageFiles(dir) {
 
       if (stat.isDirectory()) {
         scanDirectory(fullPath);
-      } else if (stat.isFile() && SUPPORTED_EXTENSIONS.includes(extname(item).toLowerCase())) {
+      } else if (
+        stat.isFile() &&
+        SUPPORTED_EXTENSIONS.includes(extname(item).toLowerCase())
+      ) {
         files.push(fullPath);
       }
     }
@@ -99,7 +93,7 @@ async function getImageMetadata(imagePath) {
     };
   } catch (error) {
     console.warn(`Could not read metadata for ${imagePath}:`, error.message);
-    return { width: 0, height: 0, format: 'unknown' };
+    return { width: 0, height: 0, format: "unknown" };
   }
 }
 
@@ -111,8 +105,8 @@ async function uploadToBlob(imagePath) {
     console.log(`Uploading ${filename} to Vercel Blob...`);
 
     const blob = await put(filename, fileBuffer, {
-      access: 'public',
-      addRandomSuffix: true, // Prevent overwrites and make URLs unguessable
+      access: "public",
+      addRandomSuffix: true,
     });
 
     console.log(`Uploaded: ${blob.pathname}`);
@@ -127,14 +121,15 @@ async function getImageEmbedding(imageUrl) {
   try {
     console.log(`Getting embedding for ${imageUrl}...`);
 
-    const response = await fetch('https://mirror-azure.vercel.app/api/embed', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image_url: imageUrl,
-      }),
+    const baseUrl =
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : "https://mirror-azure.vercel.app";
+
+    const response = await fetch(`${baseUrl}/api/embed`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image_url: imageUrl }),
     });
 
     if (!response.ok) {
@@ -143,7 +138,7 @@ async function getImageEmbedding(imageUrl) {
         const errorBody = await response.text();
         errorMessage += ` - ${errorBody}`;
       } catch {
-        // Ignore error reading response body
+        // ignore
       }
       throw new Error(errorMessage);
     }
@@ -151,7 +146,7 @@ async function getImageEmbedding(imageUrl) {
     const result = await response.json();
 
     if (!result.image_embedding) {
-      throw new Error('No image embedding in response');
+      throw new Error("No image embedding in response");
     }
 
     console.log(`Got embedding (${result.image_embedding.length} dimensions)`);
@@ -162,27 +157,41 @@ async function getImageEmbedding(imageUrl) {
   }
 }
 
-async function storeInWeaviate(imageData) {
+const IMAGE_SCHEMA = {
+  image_id: { type: "string" },
+  image_url: { type: "string" },
+  width: { type: "int" },
+  height: { type: "int" },
+};
+
+async function storeInTurbopuffer(imageData) {
   try {
     const { id, blobUrl, width, height, vector, filename } = imageData;
 
-    console.log(`Storing in Weaviate: ${id}...`);
+    console.log(`Storing in Turbopuffer: ${id}...`);
 
-    const imageCollection = weaviateClient.collections.get('Image');
-    const result = await imageCollection.data.insert({
-      properties: {
-        filename: filename,
-        image_url: blobUrl,
-        width: width,
-        height: height,
-      },
-      vectors: vector,
+    const client = getTurbopufferClient();
+    const ns = client.namespace("Image");
+
+    await ns.write({
+      upsert_rows: [
+        {
+          id,
+          vector,
+          image_id: filename,
+          image_url: blobUrl,
+          width: width ?? 0,
+          height: height ?? 0,
+        },
+      ],
+      distance_metric: "cosine_distance",
+      schema: IMAGE_SCHEMA,
     });
 
-    console.log(`Stored in Weaviate: ${id}`);
-    return result;
+    console.log(`Stored in Turbopuffer: ${id}`);
+    return { id };
   } catch (error) {
-    console.error(`Failed to store in Weaviate:`, error.message);
+    console.error(`Failed to store in Turbopuffer:`, error.message);
     throw error;
   }
 }
@@ -192,19 +201,17 @@ async function processImage(imagePath) {
   const id = randomUUID();
 
   try {
-    // Get image metadata
     const metadata = await getImageMetadata(imagePath);
-    console.log(`Image ${filename}: ${metadata.width}x${metadata.height} (${metadata.format})`);
+    console.log(
+      `Image ${filename}: ${metadata.width}x${metadata.height} (${metadata.format})`
+    );
 
-    // Upload to Vercel Blob
     const blob = await uploadToBlob(imagePath);
-    const blobUrl = blob.url; // Use the full URL returned by Vercel Blob
+    const blobUrl = blob.url;
 
-    // Get embedding
     const vector = await getImageEmbedding(blobUrl);
 
-    // Store in Weaviate
-    await storeInWeaviate({
+    await storeInTurbopuffer({
       id,
       filename,
       blobUrl,
@@ -220,87 +227,36 @@ async function processImage(imagePath) {
   }
 }
 
-async function ensureWeaviateSchema() {
-  try {
-    console.log('Creating Image collection in Weaviate...');
-
-    // Try to create the collection - modern Weaviate API uses collections instead of classes
-    try {
-      await weaviateClient.collections.create({
-        name: 'Image',
-        description: 'Image collection for vector search',
-        properties: [
-          {
-            name: 'filename',
-            dataType: 'text',
-            description: 'Original filename of the image',
-          },
-          {
-            name: 'image_url',
-            dataType: 'text',
-            description: 'Public URL to the image in Vercel Blob',
-          },
-          {
-            name: 'width',
-            dataType: 'int',
-            description: 'Image width in pixels',
-          },
-          {
-            name: 'height',
-            dataType: 'int',
-            description: 'Image height in pixels',
-          },
-        ],
-        vectorizers: weaviate.configure.vectorizer.none(), // We'll provide our own vectors
-      });
-
-      console.log('Created Image collection in Weaviate');
-    } catch (schemaError) {
-      if (schemaError.message.includes('already exists') || schemaError.message.includes('duplicate')) {
-        console.log('Image collection already exists in Weaviate');
-      } else {
-        throw schemaError;
-      }
-    }
-  } catch (error) {
-    console.error('Failed to ensure Weaviate schema:', error.message);
-    throw error;
-  }
-}
-
 async function main() {
   try {
-    console.log('Starting image indexing process...');
+    console.log("Starting image indexing process...");
 
-    // Initialize clients
-    await initializeClients();
+    getTurbopufferClient();
+    console.log("Turbopuffer client initialized");
 
-    // Ensure Weaviate schema
-    await ensureWeaviateSchema();
-
-    // Find all image files
     console.log(`Scanning for images in ${DATA_DIR}...`);
     const imageFiles = getImageFiles(DATA_DIR);
 
     if (imageFiles.length === 0) {
-      console.log('No image files found in data directory');
+      console.log("No image files found in data directory");
       return;
     }
 
     console.log(`Found ${imageFiles.length} image(s) to process`);
 
-    // Process images in batches
     const results = { successful: 0, failed: 0, errors: [] };
 
     for (let i = 0; i < imageFiles.length; i += BATCH_SIZE) {
       const batch = imageFiles.slice(i, i + BATCH_SIZE);
-      console.log(`\nProcessing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(imageFiles.length / BATCH_SIZE)}`);
+      console.log(
+        `\nProcessing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(imageFiles.length / BATCH_SIZE)}`
+      );
 
       const batchPromises = batch.map(processImage);
       const batchResults = await Promise.allSettled(batchPromises);
 
       for (const result of batchResults) {
-        if (result.status === 'fulfilled') {
+        if (result.status === "fulfilled") {
           if (result.value.success) {
             results.successful++;
             console.log(`${result.value.filename} (${result.value.id})`);
@@ -314,31 +270,26 @@ async function main() {
           console.log(`Batch processing failed: ${result.reason}`);
         }
       }
-
-      // No delay between batches - serverless backend can handle concurrency
     }
 
-    // Final summary
-    console.log('\nIndexing complete!');
+    console.log("\nIndexing complete!");
     console.log(`Successful: ${results.successful}`);
     console.log(`Failed: ${results.failed}`);
     console.log(`Total: ${results.successful + results.failed}`);
 
     if (results.errors.length > 0) {
-      console.log('\nErrors encountered:');
-      results.errors.forEach(error => {
-        console.log(`  • ${error.filename}: ${error.error}`);
+      console.log("\nErrors encountered:");
+      results.errors.forEach((error) => {
+        console.log(`  - ${error.filename}: ${error.error}`);
       });
     }
-
   } catch (error) {
-    console.error('Fatal error:', error.message);
+    console.error("Fatal error:", error.message);
     process.exit(1);
   }
 }
 
-// Run the script
-main().catch(error => {
-  console.error('Script failed:', error);
+main().catch((error) => {
+  console.error("Script failed:", error);
   process.exit(1);
 });

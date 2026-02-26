@@ -1,35 +1,33 @@
-
 export type UploadResult = {
   url: string;
   pathname: string;
 };
 
-import { put } from '@vercel/blob';
-import weaviate from 'weaviate-client';
+import { Turbopuffer } from "@turbopuffer/turbopuffer";
+import { put } from "@vercel/blob";
+import { randomUUID } from "crypto";
 
-async function getWeaviateClient() {
-  const weaviateUrl = process.env.WEAVIATE_HTTP?.replace('https://', '').replace('http://', '');
-  
-  if (!weaviateUrl || !process.env.WEAVIATE_API_KEY) {
-    throw new Error('Missing WEAVIATE_HTTP or WEAVIATE_API_KEY environment variables');
+function getTurbopufferClient() {
+  if (!process.env.TURBOPUFFER_API_KEY) {
+    throw new Error("Missing TURBOPUFFER_API_KEY environment variable");
   }
-
-  return await weaviate.connectToWeaviateCloud(
-    weaviateUrl,
-    {
-      authCredentials: new weaviate.ApiKey(process.env.WEAVIATE_API_KEY),
-    }
-  );
+  return new Turbopuffer({
+    apiKey: process.env.TURBOPUFFER_API_KEY,
+    region:
+      (process.env.TURBOPUFFER_REGION as "gcp-us-central1") ||
+      "gcp-us-central1",
+  });
 }
 
 async function getImageEmbedding(imageUrl: string): Promise<number[]> {
-  const baseUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3001' 
-    : (process.env.NEXTAUTH_URL || 'https://mirror-azure.vercel.app');
-  
+  const baseUrl =
+    process.env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
+
   const response = await fetch(`${baseUrl}/api/embed`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_url: imageUrl }),
   });
 
@@ -41,28 +39,34 @@ async function getImageEmbedding(imageUrl: string): Promise<number[]> {
   return result.image_embedding;
 }
 
+const IMAGE_SCHEMA = {
+  image_id: { type: "string" as const },
+  image_url: { type: "string" as const },
+  width: { type: "int" as const },
+  height: { type: "int" as const },
+};
+
 export async function uploadImage(
   input: File | Blob,
   opts: { filename?: string; contentType?: string } = {}
 ): Promise<UploadResult> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error('BLOB_READ_WRITE_TOKEN is required');
+    throw new Error("BLOB_READ_WRITE_TOKEN is required");
   }
 
-  const filename = opts.filename || ((input as File)?.name ?? `image-${Date.now()}`);
-  const id = filename.replace(/\.[^/.]+$/, ''); // Remove extension for ID
+  const filename =
+    opts.filename || ((input as File)?.name ?? `image-${Date.now()}`);
+  const imageId = filename.replace(/\.[^/.]+$/, "");
 
-  // Upload to Vercel Blob
   const blob = await put(filename, input, {
-    access: 'public',
+    access: "public",
     addRandomSuffix: true,
   });
 
-  // Get embedding
   const vector = await getImageEmbedding(blob.url);
 
-  // Get image metadata
-  let width = 0, height = 0;
+  let width = 0,
+    height = 0;
   if (input instanceof File || input instanceof Blob) {
     try {
       const img = new Image();
@@ -82,21 +86,24 @@ export async function uploadImage(
     }
   }
 
-  // Store in Weaviate
-  const client = await getWeaviateClient();
-  const imageCollection = client.collections.get('Image');
-  
-  await imageCollection.data.insert({
-    properties: {
-      image_id: id,
-      image_url: blob.url,
-      width,
-      height,
-    },
-    vectors: vector,
+  const tpuf = getTurbopufferClient();
+  const ns = tpuf.namespace("Image");
+  const id = randomUUID();
+
+  await ns.write({
+    upsert_rows: [
+      {
+        id,
+        vector,
+        image_id: imageId,
+        image_url: blob.url,
+        width,
+        height,
+      },
+    ],
+    distance_metric: "cosine_distance",
+    schema: IMAGE_SCHEMA,
   });
 
   return { url: blob.url, pathname: blob.pathname };
 }
-
-

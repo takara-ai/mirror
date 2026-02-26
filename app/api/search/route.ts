@@ -2,87 +2,99 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Weaviate client setup
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let weaviateClientPromise: Promise<any> | null = null;
+import { Turbopuffer } from "@turbopuffer/turbopuffer";
 
-async function getWeaviateClient() {
-  if (!weaviateClientPromise) {
-    const weaviateModule = await import("weaviate-client");
-    const weaviate = weaviateModule.default;
-    const { ApiKey } = weaviateModule;
+let tpufClient: Turbopuffer | null = null;
 
-    // Connect to Weaviate Cloud
-    const weaviateUrl = process.env.WEAVIATE_HTTP?.replace(
-      "https://",
-      ""
-    ).replace("http://", "");
+const PRODUCTION_APP_URL = "https://mirror-azure.vercel.app";
 
-    if (!weaviateUrl || !process.env.WEAVIATE_API_KEY) {
-      throw new Error(
-        "Missing WEAVIATE_HTTP or WEAVIATE_API_KEY environment variables"
-      );
-    }
-
-    weaviateClientPromise = weaviate.connectToWeaviateCloud(weaviateUrl, {
-      authCredentials: new ApiKey(process.env.WEAVIATE_API_KEY),
-    });
+function getEmbedBaseUrl(): string {
+  if (process.env.NEXTAUTH_URL) {
+    return process.env.NEXTAUTH_URL;
   }
-  return weaviateClientPromise;
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  if (process.env.NODE_ENV === "production") {
+    return PRODUCTION_APP_URL;
+  }
+  return "http://localhost:3000";
 }
 
-// Get embedding for image URL using the existing embedding endpoint
-async function getImageEmbedding(imageUrl: string): Promise<number[]> {
-  // Use localhost in development, otherwise use the deployed URL
-  const baseUrl = process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
+function buildEmbedHeaders(incomingReq: Request): HeadersInit {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const cookie = incomingReq.headers.get("cookie");
+  if (cookie) {
+    headers["cookie"] = cookie;
+  }
+  const auth = incomingReq.headers.get("authorization");
+  if (auth) {
+    headers["authorization"] = auth;
+  }
+  return headers;
+}
 
-  const embedResponse = await fetch(`${baseUrl}/api/embed`, {
+async function getImageEmbedding(
+  imageUrl: string,
+  incomingReq: Request
+): Promise<number[]> {
+  const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: buildEmbedHeaders(incomingReq),
     body: JSON.stringify({ image_url: imageUrl }),
   });
-
-  if (!embedResponse.ok) {
-    throw new Error(
-      `Failed to get image embedding: ${embedResponse.statusText}`
-    );
+  if (!res.ok) {
+    throw new Error(`Embed failed: ${res.statusText}`);
   }
-
-  const embedResult = await embedResponse.json();
-  return embedResult.image_embedding;
+  const data = (await res.json()) as { image_embedding?: number[] };
+  if (!data.image_embedding) {
+    throw new Error("No image_embedding in response");
+  }
+  return data.image_embedding;
 }
 
-// Get embedding for text using the existing embedding endpoint
-async function getTextEmbedding(text: string): Promise<number[]> {
-  // Use localhost in development, otherwise use the deployed URL
-  const baseUrl = process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
-
-  const embedResponse = await fetch(`${baseUrl}/api/embed`, {
+async function getTextEmbedding(
+  text: string,
+  incomingReq: Request
+): Promise<number[]> {
+  const res = await fetch(`${getEmbedBaseUrl()}/api/embed`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text: text }),
+    headers: buildEmbedHeaders(incomingReq),
+    body: JSON.stringify({ text }),
   });
-
-  if (!embedResponse.ok) {
-    throw new Error(
-      `Failed to get text embedding: ${embedResponse.statusText}`
-    );
+  if (!res.ok) {
+    throw new Error(`Embed failed: ${res.statusText}`);
   }
+  const data = (await res.json()) as { text_embedding?: number[] };
+  if (!data.text_embedding) {
+    throw new Error("No text_embedding in response");
+  }
+  return data.text_embedding;
+}
 
-  const embedResult = await embedResponse.json();
-  return embedResult.text_embedding;
+function getTurbopufferClient(): Turbopuffer {
+  if (!tpufClient) {
+    if (!process.env.TURBOPUFFER_API_KEY) {
+      throw new Error("Missing TURBOPUFFER_API_KEY environment variable");
+    }
+    tpufClient = new Turbopuffer({
+      apiKey: process.env.TURBOPUFFER_API_KEY,
+      region:
+        (process.env.TURBOPUFFER_REGION as "gcp-us-central1") ||
+        "gcp-us-central1",
+    });
+  }
+  return tpufClient;
 }
 
 type SearchBody = {
-  vector?: number[]; // Direct vector for search
-  image_url?: string; // Image URL to get embedding and search
-  text?: string; // Text query to get embedding and search
-  top_k?: number; // Number of results to return (default: 50)
-  threshold?: number; // Minimum similarity threshold (optional)
+  vector?: number[];
+  image_url?: string;
+  text?: string;
+  top_k?: number;
+  threshold?: number;
 };
 
 type SearchResult = {
@@ -104,8 +116,7 @@ export async function POST(req: Request) {
       threshold,
     } = (await req.json()) as SearchBody;
 
-    // Validate input
-    if (!vector && !image_url && !text) {
+    if (!(vector || image_url || text)) {
       return new Response(
         JSON.stringify({
           error: "Provide either vector, image_url, or text for search.",
@@ -116,27 +127,35 @@ export async function POST(req: Request) {
 
     let searchVector = vector;
 
-    // If image_url provided, get its embedding
     if (image_url && !vector) {
       try {
-        searchVector = await getImageEmbedding(image_url);
-      } catch {
+        searchVector = await getImageEmbedding(image_url, req);
+      } catch (err) {
+        console.error("[search] getImageEmbedding failed:", err);
         return new Response(
           JSON.stringify({
             error: "Failed to process image URL for embedding.",
+            ...(process.env.NODE_ENV === "development" && {
+              detail: err instanceof Error ? err.message : String(err),
+            }),
           }),
           { status: 400, headers: { "content-type": "application/json" } }
         );
       }
     }
 
-    // If text provided, get its embedding
     if (text && !vector && !image_url) {
       try {
-        searchVector = await getTextEmbedding(text);
-      } catch {
+        searchVector = await getTextEmbedding(text, req);
+      } catch (err) {
+        console.error("[search] getTextEmbedding failed:", err);
         return new Response(
-          JSON.stringify({ error: "Failed to process text for embedding." }),
+          JSON.stringify({
+            error: "Failed to process text for embedding.",
+            ...(process.env.NODE_ENV === "development" && {
+              detail: err instanceof Error ? err.message : String(err),
+            }),
+          }),
           { status: 400, headers: { "content-type": "application/json" } }
         );
       }
@@ -149,48 +168,37 @@ export async function POST(req: Request) {
       );
     }
 
-    // Initialize Weaviate client
-    const client = await getWeaviateClient();
+    const tpuf = getTurbopufferClient();
+    const ns = tpuf.namespace("Image");
 
-    // Get the Image collection
-    const imageCollection = client.collections.get("Image");
+    const result = await ns.query({
+      rank_by: ["vector", "ANN", searchVector],
+      top_k: Math.min(top_k, 10_000),
+      include_attributes: ["image_id", "image_url", "width", "height"],
+    });
 
-    // Perform vector search using the v4 API
-    const searchOptions: Record<string, unknown> = {
-      limit: top_k,
-      returnMetadata: ["distance"],
-    };
+    let rows = (result.rows ?? []) as Array<{
+      id: string;
+      $dist?: number;
+      image_id?: string;
+      image_url?: string;
+      width?: number;
+      height?: number;
+    }>;
 
-    // Add distance threshold if provided
     if (threshold !== undefined) {
-      searchOptions.where = {
-        path: ["_additional", "distance"],
-        operator: "LessThan",
-        valueNumber: 1 - threshold, // Convert similarity threshold to distance
-      };
+      const maxDist = 1 - threshold;
+      rows = rows.filter((r) => (r.$dist ?? 0) <= maxDist);
     }
 
-    const response = await imageCollection.query.nearVector(
-      searchVector,
-      searchOptions
-    );
-
-    // Parse and format results
-    const results: SearchResult[] = [];
-
-    if (response.objects) {
-      for (const item of response.objects) {
-        const distance = item.metadata?.distance || 0;
-        results.push({
-          id: item.uuid,
-          image_id: item.properties.image_id,
-          image_url: item.properties.image_url,
-          width: item.properties.width,
-          height: item.properties.height,
-          score: 1 - distance, // Convert distance to similarity score
-        });
-      }
-    }
+    const results: SearchResult[] = rows.map((r) => ({
+      id: String(r.id),
+      image_id: r.image_id ?? "",
+      image_url: r.image_url ?? "",
+      width: r.width ?? 0,
+      height: r.height ?? 0,
+      score: 1 - (r.$dist ?? 0),
+    }));
 
     return new Response(
       JSON.stringify({
@@ -216,19 +224,20 @@ export async function POST(req: Request) {
   }
 }
 
-// Optional: GET endpoint for health check
 export async function GET() {
   try {
-    const client = await getWeaviateClient();
-
-    // Simple connectivity check - try to get the Image collection
-    const imageCollection = client.collections.get("Image");
-    await imageCollection.query.fetchObjects({ limit: 1 });
+    const tpuf = getTurbopufferClient();
+    const ns = tpuf.namespace("Image");
+    await ns.query({
+      rank_by: ["id", "asc"],
+      top_k: 1,
+      include_attributes: [],
+    });
 
     return new Response(
       JSON.stringify({
         status: "ok",
-        weaviate_connected: true,
+        vector_store_connected: true,
         message: "Vector search API is ready",
       }),
       {
@@ -240,8 +249,8 @@ export async function GET() {
     return new Response(
       JSON.stringify({
         status: "error",
-        weaviate_connected: false,
-        error: (err as Error)?.message ?? "Weaviate connection failed",
+        vector_store_connected: false,
+        error: (err as Error)?.message ?? "Vector store connection failed",
       }),
       {
         status: 500,
