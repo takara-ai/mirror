@@ -372,7 +372,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
               ...data[i + 1],
               texture: await loadTextureWithAspectRatio(
                 textureLoader,
-                getOptimizedImageUrl(data[i + 1].image_url, IMAGE_SIZE * 2),
+                getOptimizedImageUrl(data[i + 1].image_url, 256),
                 IMAGE_SIZE,
                 IMAGE_SIZE
               ),
@@ -396,7 +396,7 @@ export const usePositionCache = create<PositionCacheState>((set, get) => ({
               ...data[i],
               texture: await loadTextureWithAspectRatio(
                 textureLoader,
-                getOptimizedImageUrl(data[i].image_url, IMAGE_SIZE * 2),
+                getOptimizedImageUrl(data[i].image_url, 256),
                 IMAGE_SIZE,
                 IMAGE_SIZE
               ),
