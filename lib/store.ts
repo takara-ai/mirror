@@ -8,7 +8,7 @@ const textureLoader = new TextureLoader();
 const LIMIT = 100;
 const THRESHOLD = 0.2;
 
-export type SearchResult = {
+type SearchResult = {
   id: string;
   image_id: string;
   image_url: string;

@@ -15,7 +15,7 @@ import * as THREE from "three";
  * @param geometryWidth - Width of the target geometry
  * @param geometryHeight - Height of the target geometry
  */
-export function configureTextureAspectRatio(
+function configureTextureAspectRatio(
   texture: Texture,
   geometryWidth: number,
   geometryHeight: number
@@ -75,7 +75,7 @@ export function configureTextureAspectRatio(
  * @param geometryWidth - Width of the target geometry
  * @param geometryHeight - Height of the target geometry
  */
-export function configureTextureContain(
+function configureTextureContain(
   texture: Texture,
   geometryWidth: number,
   geometryHeight: number
