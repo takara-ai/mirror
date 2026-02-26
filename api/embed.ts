@@ -2,16 +2,22 @@
 export const runtime = "nodejs"; // use Node.js, not Edge
 export const dynamic = "force-dynamic"; // ensure server execution
 
-// Optional: cache models in /tmp to reduce cold starts on Vercel
-process.env.TRANSFORMERS_CACHE =
-  process.env.TRANSFORMERS_CACHE || "/tmp/transformers";
+// Writable cache dir for serverless (Vercel: only /tmp is writable)
+const CACHE_DIR =
+  process.env.TRANSFORMERS_CACHE || process.env.HF_HOME || "/tmp/transformers";
 
 // Lazy import and initialization to handle ESM compatibility
 let transformersPromise: Promise<any> | null = null;
 
 async function getTransformers() {
   if (!transformersPromise) {
-    transformersPromise = import("@xenova/transformers");
+    transformersPromise = import("@xenova/transformers").then((mod) => {
+      // @xenova/transformers defaults cacheDir to node_modules/.../\.cache (read-only on Vercel)
+      if (mod.env) {
+        mod.env.cacheDir = CACHE_DIR;
+      }
+      return mod;
+    });
   }
   return transformersPromise;
 }
