@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // w=80 used for grid thumbnails (40px @2x); must be in imageSizes or deviceSizes
+    imageSizes: [32, 48, 64, 80, 96, 128, 256, 384],
     remotePatterns: [
       {
         protocol: "https",
