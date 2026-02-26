@@ -20,7 +20,7 @@ let transformersPromise: Promise<TransformersModule> | null = null;
 
 async function getTransformers(): Promise<TransformersModule> {
   if (!transformersPromise) {
-    transformersPromise = import("@xenova/transformers").then(
+    transformersPromise = import("@huggingface/transformers").then(
       (mod: TransformersModule) => {
         if (mod.env) {
           mod.env.cacheDir = CACHE_DIR;
