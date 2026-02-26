@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { Turbopuffer } from "@turbopuffer/turbopuffer";
-import { POST as embedPost } from "@/api/embed";
+import { embedImage, embedText } from "@/api/embed";
 
 let tpufClient: Turbopuffer | null = null;
 
@@ -20,41 +20,6 @@ function getTurbopufferClient(): Turbopuffer {
     });
   }
   return tpufClient;
-}
-
-// Call embed handler in-process to avoid internal fetch (Vercel can return wrong handler for same-host /api/embed)
-async function getImageEmbedding(imageUrl: string): Promise<number[]> {
-  const req = new Request("http://localhost/api/embed", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl }),
-  });
-  const res = await embedPost(req);
-  if (!res.ok) {
-    throw new Error(`Failed to get image embedding: ${res.statusText}`);
-  }
-  const data = (await res.json()) as { image_embedding?: number[] };
-  if (!data.image_embedding) {
-    throw new Error("No image_embedding in response");
-  }
-  return data.image_embedding;
-}
-
-async function getTextEmbedding(text: string): Promise<number[]> {
-  const req = new Request("http://localhost/api/embed", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  const res = await embedPost(req);
-  if (!res.ok) {
-    throw new Error(`Failed to get text embedding: ${res.statusText}`);
-  }
-  const data = (await res.json()) as { text_embedding?: number[] };
-  if (!data.text_embedding) {
-    throw new Error("No text_embedding in response");
-  }
-  return data.text_embedding;
 }
 
 type SearchBody = {
@@ -97,7 +62,7 @@ export async function POST(req: Request) {
 
     if (image_url && !vector) {
       try {
-        searchVector = await getImageEmbedding(image_url);
+        searchVector = await embedImage(image_url);
       } catch {
         return new Response(
           JSON.stringify({
@@ -110,7 +75,7 @@ export async function POST(req: Request) {
 
     if (text && !vector && !image_url) {
       try {
-        searchVector = await getTextEmbedding(text);
+        searchVector = await embedText(text);
       } catch {
         return new Response(
           JSON.stringify({ error: "Failed to process text for embedding." }),

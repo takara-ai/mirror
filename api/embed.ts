@@ -65,10 +65,45 @@ async function initializeModels() {
   };
 }
 
+/** Get text embedding vector (in-process, no network). */
+export async function embedText(text: string): Promise<number[]> {
+  const { tokenizerPromise, textModelPromise } = await initializeModels();
+  const [tok, textModel] = await Promise.all([
+    tokenizerPromise,
+    textModelPromise,
+  ]);
+  const inputs = tok([text], { padding: true, truncation: true });
+  const { text_embeds } = await textModel(inputs);
+  return Array.from(text_embeds.data as Float32Array);
+}
+
+/** Get image embedding vector from URL or base64 (in-process, no network). */
+export async function embedImage(
+  imageUrl: string,
+  opts?: { base64?: string }
+): Promise<number[]> {
+  const { RawImage } = await getTransformers();
+  const { processorPromise, visionModelPromise } = await initializeModels();
+  const [proc, visionModel] = await Promise.all([
+    processorPromise,
+    visionModelPromise,
+  ]);
+
+  let image: any;
+  if (opts?.base64) {
+    image = await RawImage.read(`data:image/jpeg;base64,${opts.base64}`);
+  } else {
+    image = await RawImage.read(imageUrl);
+  }
+  const image_inputs = await proc(image);
+  const { image_embeds } = await visionModel(image_inputs);
+  return Array.from(image_embeds.data as Float32Array);
+}
+
 type Body = {
   text?: string;
-  image_url?: string; // preferred: public URL
-  image_base64?: string; // alternative: base64 without data URL prefix
+  image_url?: string;
+  image_base64?: string;
 };
 
 export async function POST(req: Request) {
@@ -77,46 +112,13 @@ export async function POST(req: Request) {
 
     const out: { text_embedding?: number[]; image_embedding?: number[] } = {};
 
-    // Initialize models with dynamic imports
-    const {
-      processorPromise,
-      visionModelPromise,
-      tokenizerPromise,
-      textModelPromise,
-    } = await initializeModels();
-
-    // Text embedding (optional)
     if (typeof text === "string") {
-      const [tok, textModel] = await Promise.all([
-        tokenizerPromise,
-        textModelPromise,
-      ]);
-      const inputs = tok([text], { padding: true, truncation: true });
-      const { text_embeds } = await textModel(inputs);
-      out.text_embedding = Array.from(text_embeds.data as Float32Array);
+      out.text_embedding = await embedText(text);
     }
-
-    // Image embedding (optional)
     if (image_url || image_base64) {
-      const { RawImage } = await getTransformers();
-      const [proc, visionModel] = await Promise.all([
-        processorPromise,
-        visionModelPromise,
-      ]);
-
-      let image: any;
-      if (image_url) {
-        // RawImage.read can accept a URL and will use image-js backend
-        image = await RawImage.read(image_url);
-      } else if (image_base64) {
-        // Create data URL from base64 for RawImage.read
-        const dataUrl = `data:image/jpeg;base64,${image_base64}`;
-        image = await RawImage.read(dataUrl);
-      }
-
-      const image_inputs = await proc(image);
-      const { image_embeds } = await visionModel(image_inputs);
-      out.image_embedding = Array.from(image_embeds.data as Float32Array);
+      out.image_embedding = await embedImage(image_url ?? "", {
+        base64: image_base64,
+      });
     }
 
     if (!(out.text_embedding || out.image_embedding)) {

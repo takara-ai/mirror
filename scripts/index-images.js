@@ -6,7 +6,7 @@
  * This script indexes images from the data folder by:
  * 1. Finding all image files in the data directory
  * 2. Uploading them to Vercel Blob storage
- * 3. Generating embeddings using the local /api/embed endpoint
+ * 3. Generating embeddings using the embed lib in-process (no network)
  * 4. Storing metadata and vectors in Turbopuffer
  *
  * Environment variables required:
@@ -115,42 +115,13 @@ async function uploadToBlob(imagePath) {
   }
 }
 
+/** Uses embed lib in-process (no network). Run with bun from repo root. */
 async function getImageEmbedding(imageUrl) {
-  try {
-    console.log(`Getting embedding for ${imageUrl}...`);
-
-    const response = await fetch(
-      process.env.EMBED_API_URL || "https://mirror-azure.vercel.app/api/embed",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_url: imageUrl }),
-      }
-    );
-
-    if (!response.ok) {
-      let errorMessage = `Embedding API returned ${response.status}: ${response.statusText}`;
-      try {
-        const errorBody = await response.text();
-        errorMessage += ` - ${errorBody}`;
-      } catch {
-        // ignore
-      }
-      throw new Error(errorMessage);
-    }
-
-    const result = await response.json();
-
-    if (!result.image_embedding) {
-      throw new Error("No image embedding in response");
-    }
-
-    console.log(`Got embedding (${result.image_embedding.length} dimensions)`);
-    return result.image_embedding;
-  } catch (error) {
-    console.error(`Failed to get embedding for ${imageUrl}:`, error.message);
-    throw error;
-  }
+  console.log(`Getting embedding for ${imageUrl}...`);
+  const { embedImage } = await import("../api/embed.ts");
+  const vector = await embedImage(imageUrl);
+  console.log(`Got embedding (${vector.length} dimensions)`);
+  return vector;
 }
 
 const IMAGE_SCHEMA = {

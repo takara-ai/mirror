@@ -10,7 +10,8 @@
  *   DRY_RUN=1 bun run index-picsum 20
  *   bun run index-picsum --concurrency 8 50
  *
- * Env: BLOB_READ_WRITE_TOKEN, TURBOPUFFER_API_KEY; optional EMBED_API_URL, TURBOPUFFER_REGION, CONCURRENCY.
+ * Env: BLOB_READ_WRITE_TOKEN, TURBOPUFFER_API_KEY; optional TURBOPUFFER_REGION, CONCURRENCY.
+ * Embeddings use the embed lib in-process (no network). Run with bun from repo root.
  * Default count: 10. Max 10000 per run. Default concurrency: 5.
  */
 
@@ -144,22 +145,10 @@ async function uploadToBlob(buffer, filename) {
   return blob;
 }
 
+/** Uses embed lib in-process (no network). Run with bun from repo root. */
 async function getImageEmbedding(imageUrl) {
-  const baseUrl =
-    process.env.EMBED_API_URL || "https://mirror-azure.vercel.app/api/embed";
-  const res = await fetch(baseUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl }),
-  });
-  if (!res.ok) {
-    throw new Error(`Embed API ${res.status}: ${await res.text()}`);
-  }
-  const data = await res.json();
-  if (!data.image_embedding) {
-    throw new Error("No image_embedding in response");
-  }
-  return data.image_embedding;
+  const { embedImage } = await import("../api/embed.ts");
+  return embedImage(imageUrl);
 }
 
 const IMAGE_SCHEMA = {

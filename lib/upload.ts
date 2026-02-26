@@ -19,26 +19,6 @@ function getTurbopufferClient() {
   });
 }
 
-async function getImageEmbedding(imageUrl: string): Promise<number[]> {
-  const baseUrl =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:3001"
-      : process.env.NEXTAUTH_URL || "https://mirror-azure.vercel.app";
-
-  const response = await fetch(`${baseUrl}/api/embed`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_url: imageUrl }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to get embedding: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-  return result.image_embedding;
-}
-
 const IMAGE_SCHEMA = {
   image_id: { type: "string" as const },
   image_url: { type: "string" as const },
@@ -63,8 +43,8 @@ export async function uploadImage(
     addRandomSuffix: true,
   });
 
-  // Get embedding
-  const vector = await getImageEmbedding(blob.url);
+  // Get embedding (in-process, no network)
+  const vector = await embedImage(blob.url);
 
   // Get image metadata
   let width = 0,
