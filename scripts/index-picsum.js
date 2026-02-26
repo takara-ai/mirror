@@ -11,7 +11,7 @@
  *   bun run index-picsum --concurrency 8 50
  *
  * Env: BLOB_READ_WRITE_TOKEN, TURBOPUFFER_API_KEY; optional EMBED_API_URL, TURBOPUFFER_REGION, CONCURRENCY.
- * Default count: 10. Max 1000 per run. Default concurrency: 5.
+ * Default count: 10. Max 10000 per run. Default concurrency: 5.
  */
 
 import { Turbopuffer } from "@turbopuffer/turbopuffer";
@@ -23,7 +23,7 @@ import { join } from "path";
 config({ path: join(process.cwd(), ".env.local") });
 
 const DEFAULT_COUNT = 10;
-const MAX_COUNT = 1000;
+const MAX_COUNT = 10_000;
 const PICSUM_WIDTH = 640;
 const PICSUM_HEIGHT = 480;
 const PICSUM_ID_PREFIX = "picsum-";
