@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { Turbopuffer } from "@turbopuffer/turbopuffer";
-import { embedImage, embedText } from "@/api/embed";
+import { embedImage, embedText } from "@/app/api/embed/embed";
 
 let tpufClient: Turbopuffer | null = null;
 

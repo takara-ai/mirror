@@ -118,7 +118,7 @@ async function uploadToBlob(imagePath) {
 /** Uses embed lib in-process (no network). Run with bun from repo root. */
 async function getImageEmbedding(imageUrl) {
   console.log(`Getting embedding for ${imageUrl}...`);
-  const { embedImage } = await import("../api/embed.ts");
+  const { embedImage } = await import("../app/api/embed/embed.ts");
   const vector = await embedImage(imageUrl);
   console.log(`Got embedding (${vector.length} dimensions)`);
   return vector;

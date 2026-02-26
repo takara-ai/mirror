@@ -6,6 +6,7 @@ export type UploadResult = {
 import { Turbopuffer } from "@turbopuffer/turbopuffer";
 import { put } from "@vercel/blob";
 import { randomUUID } from "crypto";
+import { embedImage } from "@/app/api/embed/embed";
 
 function getTurbopufferClient() {
   if (!process.env.TURBOPUFFER_API_KEY) {

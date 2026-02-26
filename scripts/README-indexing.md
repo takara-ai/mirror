@@ -1,6 +1,6 @@
 # Image Indexing Script
 
-This script indexes images from your local `data` folder into Vercel Blob storage, generates CLIP embeddings using your local embedding API, and stores them in Turbopuffer for vector search.
+This script indexes images from your local `data` folder into Vercel Blob storage, generates CLIP embeddings using the in-process embed lib, and stores them in Turbopuffer for vector search.
 
 ## Prerequisites
 
@@ -16,12 +16,7 @@ This script indexes images from your local `data` folder into Vercel Blob storag
    bun install
    ```
 
-3. **Local API Running**: Your Next.js app must be running locally for the embedding API to work (or set `EMBED_API_URL` to a deployed URL):
-   ```bash
-   bun run dev
-   ```
-
-4. **Images in Data Folder**: Place images in the `data` folder (supports `.jpg`, `.jpeg`, `.png`, `.webp`)
+3. **Images in Data Folder**: Place images in the `data` folder (supports `.jpg`, `.jpeg`, `.png`, `.webp`)
 
 ## Usage
 
@@ -46,7 +41,7 @@ node scripts/index-images.js
 - Uses public access for easy retrieval
 
 ### 3. **Embedding Generation**
-- Calls your local or configured `/api/embed` endpoint for each image
+- Uses the embed lib in-process (no network; run with `bun` from repo root)
 - Generates 512-dimensional CLIP vectors
 - Handles errors gracefully if embedding fails
 
@@ -61,7 +56,6 @@ node scripts/index-images.js
 - `BLOB_READ_WRITE_TOKEN`: Your Vercel Blob read/write token
 - `TURBOPUFFER_API_KEY`: Your Turbopuffer API key (create at https://turbopuffer.com/dashboard)
 - `TURBOPUFFER_REGION`: Optional region (e.g. `gcp-us-central1`), see https://turbopuffer.com/docs/regions
-- `EMBED_API_URL`: Optional; defaults to `https://mirror-azure.vercel.app/api/embed` if not set
 
 ### Script Configuration
 ```javascript
@@ -106,9 +100,9 @@ The script writes documents to the `Image` namespace with:
 1. **"Missing environment variable"**
    - Ensure all required env vars are set in `.env.local`
 
-2. **"Embedding API returned 500"**
-   - Make sure your Next.js app is running or set `EMBED_API_URL` to a working embed endpoint
-   - Check that the embedding API is accessible
+2. **Embedding errors**
+   - Run with `bun` from the repo root so the embed lib resolves (`app/api/embed/embed.ts`)
+   - Ensure dependencies are installed (`bun install`)
 
 3. **"Turbopuffer connection failed"**
    - Verify your API key and region at https://turbopuffer.com/dashboard

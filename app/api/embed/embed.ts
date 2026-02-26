@@ -1,32 +1,41 @@
-// api/embed.ts
-export const runtime = "nodejs"; // use Node.js, not Edge
-export const dynamic = "force-dynamic"; // ensure server execution
+// Embed lib: CLIP text/image embeddings (in-process). Used by route and by search/upload/scripts.
 
-// Writable cache dir for serverless (Vercel: only /tmp is writable)
 const CACHE_DIR =
   process.env.TRANSFORMERS_CACHE || process.env.HF_HOME || "/tmp/transformers";
 
-// Lazy import and initialization to handle ESM compatibility
-let transformersPromise: Promise<any> | null = null;
+type TransformersModule = {
+  env?: { cacheDir?: string };
+  AutoProcessor: { from_pretrained: (model: string) => Promise<unknown> };
+  AutoTokenizer: { from_pretrained: (model: string) => Promise<unknown> };
+  CLIPVisionModelWithProjection: {
+    from_pretrained: (model: string) => Promise<unknown>;
+  };
+  CLIPTextModelWithProjection: {
+    from_pretrained: (model: string) => Promise<unknown>;
+  };
+  RawImage: { read: (url: string) => Promise<unknown> };
+};
 
-async function getTransformers() {
+let transformersPromise: Promise<TransformersModule> | null = null;
+
+async function getTransformers(): Promise<TransformersModule> {
   if (!transformersPromise) {
-    transformersPromise = import("@xenova/transformers").then((mod) => {
-      // @xenova/transformers defaults cacheDir to node_modules/.../\.cache (read-only on Vercel)
-      if (mod.env) {
-        mod.env.cacheDir = CACHE_DIR;
+    transformersPromise = import("@xenova/transformers").then(
+      (mod: TransformersModule) => {
+        if (mod.env) {
+          mod.env.cacheDir = CACHE_DIR;
+        }
+        return mod;
       }
-      return mod;
-    });
+    );
   }
   return transformersPromise;
 }
 
-// Lazy, shared loads (module-scope, reused across invocations)
-let processorPromise: Promise<any> | null = null;
-let visionModelPromise: Promise<any> | null = null;
-let tokenizerPromise: Promise<any> | null = null;
-let textModelPromise: Promise<any> | null = null;
+let processorPromise: Promise<unknown> | null = null;
+let visionModelPromise: Promise<unknown> | null = null;
+let tokenizerPromise: Promise<unknown> | null = null;
+let textModelPromise: Promise<unknown> | null = null;
 
 async function initializeModels() {
   const {
@@ -65,6 +74,14 @@ async function initializeModels() {
   };
 }
 
+type TokenizerFn = (
+  text: string[],
+  opts: { padding: boolean; truncation: boolean }
+) => unknown;
+type TextModelFn = (
+  inputs: unknown
+) => Promise<{ text_embeds: { data: Float32Array } }>;
+
 /** Get text embedding vector (in-process, no network). */
 export async function embedText(text: string): Promise<number[]> {
   const { tokenizerPromise, textModelPromise } = await initializeModels();
@@ -72,9 +89,12 @@ export async function embedText(text: string): Promise<number[]> {
     tokenizerPromise,
     textModelPromise,
   ]);
-  const inputs = tok([text], { padding: true, truncation: true });
-  const { text_embeds } = await textModel(inputs);
-  return Array.from(text_embeds.data as Float32Array);
+  const inputs = (tok as TokenizerFn)([text], {
+    padding: true,
+    truncation: true,
+  });
+  const { text_embeds } = await (textModel as TextModelFn)(inputs);
+  return Array.from(text_embeds.data);
 }
 
 /** Get image embedding vector from URL or base64 (in-process, no network). */
@@ -89,15 +109,19 @@ export async function embedImage(
     visionModelPromise,
   ]);
 
-  let image: any;
+  let image: unknown;
   if (opts?.base64) {
     image = await RawImage.read(`data:image/jpeg;base64,${opts.base64}`);
   } else {
     image = await RawImage.read(imageUrl);
   }
-  const image_inputs = await proc(image);
-  const { image_embeds } = await visionModel(image_inputs);
-  return Array.from(image_embeds.data as Float32Array);
+  type ProcessorFn = (image: unknown) => Promise<unknown>;
+  type VisionModelFn = (
+    inputs: unknown
+  ) => Promise<{ image_embeds: { data: Float32Array } }>;
+  const image_inputs = await (proc as ProcessorFn)(image);
+  const { image_embeds } = await (visionModel as VisionModelFn)(image_inputs);
+  return Array.from(image_embeds.data);
 }
 
 type Body = {
@@ -132,10 +156,13 @@ export async function POST(req: Request) {
       status: 200,
       headers: { "content-type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return new Response(
       JSON.stringify({
-        error: err?.message ?? "Failed to produce CLIP embeddings",
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to produce CLIP embeddings",
       }),
       { status: 500, headers: { "content-type": "application/json" } }
     );

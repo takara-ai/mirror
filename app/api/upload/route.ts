@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-import { uploadImage } from "../lib/upload.js";
+import { uploadImage } from "@/lib/upload";
 
 export async function POST(req: Request) {
   try {
