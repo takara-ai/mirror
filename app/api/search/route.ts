@@ -63,10 +63,14 @@ export async function POST(req: Request) {
     if (image_url && !vector) {
       try {
         searchVector = await embedImage(image_url);
-      } catch {
+      } catch (err) {
+        console.error("[search] embedImage failed:", err);
         return new Response(
           JSON.stringify({
             error: "Failed to process image URL for embedding.",
+            ...(process.env.NODE_ENV === "development" && {
+              detail: err instanceof Error ? err.message : String(err),
+            }),
           }),
           { status: 400, headers: { "content-type": "application/json" } }
         );
@@ -76,9 +80,15 @@ export async function POST(req: Request) {
     if (text && !vector && !image_url) {
       try {
         searchVector = await embedText(text);
-      } catch {
+      } catch (err) {
+        console.error("[search] embedText failed:", err);
         return new Response(
-          JSON.stringify({ error: "Failed to process text for embedding." }),
+          JSON.stringify({
+            error: "Failed to process text for embedding.",
+            ...(process.env.NODE_ENV === "development" && {
+              detail: err instanceof Error ? err.message : String(err),
+            }),
+          }),
           { status: 400, headers: { "content-type": "application/json" } }
         );
       }
